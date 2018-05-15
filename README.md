@@ -10,7 +10,7 @@ For more information, see "Simulation of Heterogeneous Tumour Genomes with Heter
 
 Please also cite this when using HeteroGenesis or FreqCalc.
 
-##Requirements
+## Requirements
 Python3 is required to run both HeteroGenesis and FreqCalc. numpy is also required for running HeteroGenesis. 
 Both tools have been tested with Python 3.5.2 and numpy 1.12.0 and 1.12.1.
  
@@ -81,7 +81,7 @@ CNV lengths and copy numbers, and indel lengths are taken from lognormal distrib
 |directory|Directory containing JSON output from HeteroGenesis_vargen.py and where output files will be written to.|"./"|
 |chromosomes|List of chromosomes included in the model.|”all”|
 
-###FreqCalc
+### FreqCalc
 
 
 -v/-—version : Version 
@@ -93,7 +93,7 @@ CNV lengths and copy numbers, and indel lengths are taken from lognormal distrib
 -p/--prefix : Prefix of VCF and CNV file names. This will be the same as what was provided for the ‘prefix’ parameter with HeteroGenesis.
 
 
-##Technical Notes
+## Technical Notes
 
 1. Variants are limited by the following rules in order to reduce complexity of the program:
 
