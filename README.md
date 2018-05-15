@@ -13,6 +13,12 @@ Please also cite this when using HeteroGenesis or FreqCalc.
 ## Requirements
 Python3 is required to run both HeteroGenesis and FreqCalc. numpy is also required for running HeteroGenesis. 
 Both tools have been tested with Python 3.5.2 and numpy 1.12.0 and 1.12.1.
+## Installation
+
+In the heterogenesis directory, type:
+```
+python setup.py install
+```
  
 ## Usage
 
