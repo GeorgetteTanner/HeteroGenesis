@@ -442,7 +442,7 @@ def main():
         chromosomes=parameters['chromosomes']
     else:
         chromosomes=[parameters['chromosomes']]
-    gen,reference=readingenome(chromosomes,parameters['fai'],parameters['reference'])  #get dictionaries of genome lengths and sequences
+    gen,reference=readinfai(chromosomes,parameters['fai'],parameters['reference'])  #get dictionaries of genome lengths and sequences
     print('Tumour clones : ',clones)
 
     #read in dbsnp if given
