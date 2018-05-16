@@ -24,7 +24,7 @@ python setup.py install
 
 HeteroGenesis is implemented in two parts: 
 
-The first, **HeteroGenesis\_vargen.py**, takes a FASTA genome sequence, an optional VCF file containing known germline SNV and InDel locations from dbSNP, and a JSON file containing a set of parameters, and outputs a JSON file with a lists of variants for each clone (including the germline genome) in the simulated tumour, as well as files containing the order that mutations occurred. 
+The first, **HeteroGenesis\_vargen.py**, takes a FASTA genome sequence, a .fai index file for the genome, an optional VCF file containing known germline SNV and InDel locations from dbSNP, and a JSON file containing a set of parameters, and outputs a JSON file with a lists of variants for each clone (including the germline genome) in the simulated tumour, as well as files containing the order that mutations occurred. 
 
 The second part, **HeteroGenesis\_varincorn.py** is then run, once for each clone, and incorporates the list of variants for the clone into the reference genome. It outputs: i) the FASTA genome sequence (one file for each copy of a chromosome), ii) a VCF file of SNP/SNV and InDel positions and frequencies, and iii) a file containing CNV/CNA positions and copy numbers.
 
@@ -38,8 +38,7 @@ The second part, **HeteroGenesis\_varincorn.py** is then run, once for each clon
 |Parameter|Description|Default value| 
 |---|---|---|
 |prefix	|String added to output file names.|""|
-|reference|FASTA file containing the sequence of a reference or other input genome.|Required|
-|genome|A ‘genome’ file containing chromosome names in the first column and chromosome lengths in the second. Alternatively, a FATSA index file (fasta.fai) may be provided, which also includes these columns.|Required|
+|reference|FASTA file containing the sequence of a reference or other input genome. Must have a .fai index file located in the same directory. |Required|
 |dbsnp|VCF file from dbSNP containing known germline SNPs and InDels.|none|
 |directory|Directory to output all files to.|"./"|
 |structure|Structure of clones in the tumour, in the format: “clone1\_name, clone1\_distance\_from\_parent, clone1\_parent\_name, clone2_name, clone2\_distance\_from\_parent, clone2\_parent\_name…”. All parent clone names must also be listed as a separate clone, ie. if clone2’s parent clone is clone1, then clone1 must also be listed as a clone with a parent clone. The exception to this is when the parent clone is ‘germline’, and this must occur at least once as the parent clone for the root clone of the tumour. Loops in the lineage will cause the program to never end, ie. clone1->clone2->clone3->clone1. Distances from parent clones can be any fraction or number as they are used relative to each other.|"clone1,0.2,germline,clone2,0.8,clone1"|

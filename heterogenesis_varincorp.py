@@ -44,8 +44,8 @@ def main():
         parameters['prefix'] = ''
     if "reference" not in parameters:
         print('Error: No input genome fasta file provided.')
-    if "genome" not in parameters:
-        print('Error: No chromosome length/genome file provided.')
+    if not os.path.exists(parameters['reference'][:-3] + 'i'):
+        print('Error: No fai index file for genome.')    
     if "directory" not in parameters:
         print('Warning: No output directory given, using current directory.')
         parameters['directory']='./'
@@ -55,12 +55,12 @@ def main():
 
     #Functions for reading in data----------------------------------------------------------------------------------
 
-    def readingenome(chromosomes,genome,referencefile): #reads in reference and genome files for required chromosomes into dictionaries
+    def readinfai(chromosomes,fai,referencefile): #reads in reference and fai files for required chromosomes into dictionaries
         if chromosomes==['all']:
             keepchromos=['chr1','chr2','chr3','chr4','chr5','chr6','chr7','chr8','chr9','chr10','chr11','chr12','chr13','chr14','chr15','chr16','chr17','chr18','chr19','chr20','chr21','chr22']
         else:
             keepchromos=chromosomes
-        with open(genome,'r') as geno:
+        with open(fai,'r') as geno:
                 gen = dict([(line.strip().split("\t")[0], float(line.strip().split("\t")[1])) for line in geno])
         genkeys=list(gen.keys())
         for chro in genkeys:
@@ -378,7 +378,7 @@ def main():
     else:
         chromosomes=[parameters['chromosomes']]
 
-    gen,reference=readingenome(chromosomes,parameters['genome'],parameters['reference'])  #get dictionaries of genome lengths and sequences
+    gen,reference=readinfai(chromosomes,parameters['fai'],parameters['reference'])  #get dictionaries of genome lengths and sequences
 
 
     #Generate vcf and cnv output data and write to files-------------------------------------------------------------------------------------------------

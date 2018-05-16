@@ -1,7 +1,6 @@
 {
 "prefix":"prefix",
 "reference":"/Users/Homo_sapiens_assembly38.fasta",
-"genome":"/Users/Homo_sapiens_assembly38.genome",
 "dbsnp":"/Users/dbsnp_138.hg38.vcf",
 "structure":"clone1,0.2,germline,clone2,0.8,clone1",
 "directory":"./",
