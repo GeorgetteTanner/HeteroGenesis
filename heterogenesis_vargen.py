@@ -44,8 +44,8 @@ def main():
         parameters['prefix'] = ''
     if "reference" not in parameters:
         print('Error: No input genome fasta file provided.')
-    if os.path.exists(parameters['reference'][:-3] + 'i'):
-        parameters['fai']=(parameters['reference'][:-3] + 'i')
+    if os.path.exists(parameters['reference'] + '.fai'):
+        parameters['fai']=(parameters['reference'] + '.fai')
     else:
         print('Error: No fai index file for genome.')       
     if "directory" not in parameters:
