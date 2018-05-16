@@ -26,7 +26,7 @@ HeteroGenesis is implemented in two parts:
 
 The first, **HeteroGenesis\_vargen.py**, takes a FASTA genome sequence, a .fai index file for the genome, an optional VCF file containing known germline SNV and InDel locations from dbSNP, and a JSON file containing a set of parameters, and outputs a JSON file with a lists of variants for each clone (including the germline genome) in the simulated tumour, as well as files containing the order that mutations occurred. 
 
-The second part, **HeteroGenesis\_varincorn.py** is then run, once for each clone, and incorporates the list of variants for the clone into the reference genome. It outputs: i) the FASTA genome sequence (one file for each copy of a chromosome), ii) a VCF file of SNP/SNV and InDel positions and frequencies, and iii) a file containing CNV/CNA positions and copy numbers.
+The second part, **HeteroGenesis\_varincorn.py** is then run, once for each clone, and incorporates the list of variants for the clone into the reference genome. It outputs: i) the FASTA genome sequence (one file for each copy of a chromosome), ii) a VCF file of SNV and InDel positions and frequencies, and iii) a file containing CNV positions and copy numbers.
 
 
 ### HeteroGenesis_vargen.py
@@ -48,7 +48,7 @@ The second part, **HeteroGenesis\_varincorn.py** is then run, once for each clon
 |cnvdelgermline|Number of germline deletion CNVs.|1000|
 |aneuploid|Number of somatic aneuploid events. i.e. replication or deletion of a chromosome. Copy number is randomly chosen from 0, 2 or 3. Germline aneuploid events are not available.|2|
 |snvsomatic|Rate of somatic SNVs per base.|0.00001|
-|indsomatic|Rate of somatic indels per base.|0.000002|
+|indsomatic|Rate of somatic indels per base.|0.000001|
 |cnvrepsomatic|Number of somatic replication CNVs.|250|
 |cnvdelsomatic|Number of somatic deletion CNVs.|250|
 |dbsnpsnvproportion|Proportion of germline SNVs taken from dbSNP|0.9|

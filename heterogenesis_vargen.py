@@ -46,6 +46,7 @@ def main():
         print('Error: No input genome fasta file provided.')
     if not os.path.exists(parameters['reference'][:-3] + 'i'):
         print('Error: No fai index file for genome.')
+    parameters['fai']=(parameters['reference'][:-3] + 'i')   
     if "directory" not in parameters:
         print('Warning: No output directory given, using current directory.')
         parameters['directory']='./'
@@ -71,7 +72,7 @@ def main():
         parameters['snvsomatic']=0.00001
         print('Warning: No somatic SNV rate given, using '+str(parameters['snvsomatic'])+'.')
     if "indsomatic" not in parameters:
-        parameters['indsomatic']=0.000002
+        parameters['indsomatic']=0.000001
         print('Warning: No somatic InDel rate given, using '+str(parameters['indsomatic'])+'.')
     if "cnvrepsomatic" not in parameters:
         parameters['cnvrepsomatic']=250
