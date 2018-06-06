@@ -215,13 +215,13 @@ def main():
                             else:
                                 pass
             else:
-                print("ERROR, 200")
+                print("ERROR")
             return self
         def updatevcf(self,var):
             #if var is a vcfvar (ie. snp or indel) then add to modchro vcfcounts list
             if type(var)==VCFVAR:
                 self.vcfcounts.append(deepcopy(var))
-            #if var is a cnv then adjust numbers of copies of snvs/indels that are located in the region
+            #if var is a cnv then adjust numbers of copies of snvs/indels that are located within it
             elif type(var)==BLOCK:
                 for v in self.vcfcounts:    #for each VCFVAR object in MODCHRO.vcfcounts
                     if v.incnv(var):    #if VCFVAR in cnv block
@@ -401,10 +401,10 @@ def main():
                         modchros[chro][hap].updateblocks(BLOCK(var[3],var[3],var[6]))
                     else:
                         modchros[chro][hap].updateblocks(BLOCK(var[3]+1,var[3]+1+var[4]-1,0))
-                    modchros[chro][hap].updatevcf(VCFVAR(var[3],var[5],var[6],[CNVBRANCH(var[3],var[3],'var')],'',hap))
+                    modchros[chro][hap].updatevcf(VCFVAR(var[3],var[5],var[6],[CNVBRANCH(var[3],var[3],'var')],'',hap)) #VCFVAR object starts with a single CNVBRANCH which contains the variant instead of a CNV
                 elif var[0]=='snv':
                     modchros[chro][hap].updateblocks(BLOCK(var[3],var[3],var[5]))
-                    modchros[chro][hap].updatevcf(VCFVAR(var[3],var[4],var[5],[CNVBRANCH(var[3],var[3],'var')],'',hap))
+                    modchros[chro][hap].updatevcf(VCFVAR(var[3],var[4],var[5],[CNVBRANCH(var[3],var[3],'var')],'',hap)) #VCFVAR object starts with a single CNVBRANCH which contains the variant instead of a CNV
                 elif var[0]=='aneu':
                     pass    #no need to do anything
             modchros[chro][hap].addupfinalvcfs()

@@ -47,7 +47,7 @@ def main():
     if os.path.exists(parameters['reference'] + '.fai'):
         parameters['fai']=(parameters['reference'] + '.fai')
     else:
-        print('Error: No fai index file for genome.')       
+        print('Error: No fai index file for genome.')
     if "directory" not in parameters:
         print('Warning: No output directory given, using current directory.')
         parameters['directory']='./'
@@ -145,33 +145,30 @@ def main():
             clones[structure[i*3-3]]=[structure[i*3-2],structure[i*3-1]]
         return(clones)
 
-    def readindbsnp(dbsnp,gen,snvgernum,indgernum):    #formats structure parameter into dictionary
-        dbsnvalt={}
-        dbindelalt={}
-        dbsnvmaf={}
-        dbindelmaf={}
-        dbsnvs={}
-        dbindels={}
-        for chro in gen:
-            dbsnvalt[chro]=[]
-            dbindelalt[chro]=[]
-            dbsnvmaf[chro]=[]
-            dbindelmaf[chro]=[]
+    def readindbsnp(dbsnp,gen):    #reads in dbsnp vcf file
         with open(dbsnp,'r') as file:
-            for l in file:
-                if l[0]=='s':
-                    dbsnvalt[l[1]].append([l[2],l[3]]) #append position and alt allele to chromosome key 
-                    dbsnvmaf[l[1]].append(l[4]) #append MAF to chromosome key 
-                else:
-                    dbindelalt[l[1]].append([l[2],l[3]]) #append position and alt allele to chromosome key 
-                    dbindelmaf[l[1]].append(l[4]) #append MAF to chromosome key 
-        for chro in gen:
-            p=dbsnvmaf[chro]
-            p /= p.sum()  # normalize
-            dbsnvs[chro]=numpy.random.choice(dbsnvalt[chro],size=len(dbsnvalt[chro])/2, p=p, replace=False) #sample half of total number - shouldn't need more and probabilities would get very distorted if sampling up to the total number 
-            p=dbindelmaf[chro]
-            p /= p.sum()  # normalize
-            dbindels[chro]=numpy.random.choice(dbindelalt[chro],size=len(dbsnvalt[chro])/2, p=p, replace=False)
+            dbsnvs={}
+            dbindels={}
+            for chro in gen:
+                dbsnvs[chro]=[]
+                dbsnvsp[chro]=[]
+                dbindels[chro]=[]
+                dbindelsp[chro]=[]
+            for line in file:
+                if line.startswith('#'):
+                    continue
+                l=line.strip().split("\t")
+                if l[0] in gen:
+                    ref = l[3].split(',')
+                    alt = l[4].split(',')
+                    p = l[3].split(',')
+                    for i in ref:
+                        for ii in alt:
+                            if len(ii)==1 and len(i)==1:    #if its an snv
+                                dbsnvs[l[0]].append([l[1],i,ii])
+                                dbsnvs[l[0]].append([l[1],i,ii])
+                            elif len(ii)==1 or len(i)==1:   #if its an indel, but not multiple bases being replaced by multiple bases (too much hassel)
+                                dbindels[l[0]].append([l[1],i,ii])
         return(dbsnvs,dbindels)
 
     def readinfai(chromosomes,fai,referencefile): #reads in reference and fai files for required chromosomes into dictionaries
@@ -247,10 +244,10 @@ def main():
         else:
             i=numpy.random.choice([True,False],1,p=[float(pro),(1-float(pro))])[0]
         if i == True:   #if taking variant form dnindels
-            l=dbsnvs[chro][0]
+            l=dbsnvs[chro][numpy.random.choice(range(len(dbsnvs[chro])))]
             position=int(l[0])
-            ref=reference[chro][position-1]
-            alt=l[1]
+            ref=l[1]
+            alt=l[2]
         else:
             ref='N'
             while ref=='n' or ref=='N':
@@ -275,8 +272,7 @@ def main():
         else:
             i=numpy.random.choice([True,False],1,p=[float(pro),(1-float(pro))])[0]
         if i == True:   #if taking variant form dnindels
-            l=dbindels[chro][0]
-            ########################
+            l=dbindels[chro][numpy.random.choice(range(len(dbindels[chro])))]
             print(l)
             position=int(l[0])
             ref=l[1]
@@ -292,9 +288,10 @@ def main():
             while length>50:
                 length=int(round((float(numpy.random.lognormal(parameters['indmean'],parameters['indvariance'],1)[0])*parameters['indmultiply'])+0.5,0))
             seq=50*'N'
-            ref='N'
-            while (seq.count('N')+seq.count('n')>float(length)/4) or ref[0]=='n' or ref[0]=='N':    #keep getting an indel until it doesn't contain more than 1/4 'N's or base isn't an N 
+            refplusone='N'
+            while (seq.count('N')+seq.count('n')>float(length)/4) or refplusone=='n' or refplusone=='N':    #keep getting an indel until it doesn't contain more than 1/4 'N's or base after position isn't an N (indels start on base after position)
                 position=random.randint(1,gen[chro]-length)
+                refplusone=reference[chro][position-1+1]
                 iod=numpy.random.choice(['i','d'])
                 if iod=='i':
                     ref=reference[chro][position-1]
@@ -304,7 +301,7 @@ def main():
                     alt=seq
                     ref=alt[0]
                 else:
-                    seq=reference[chro][position-1:position+length]#get ref + deleted sequence
+                    seq=reference[chro][position-1:position+length]#get deleted sequence
                     ref=seq
                     alt=ref[0]
         print(['indel',chro,hap,position,length,ref,alt,iod])
@@ -330,6 +327,10 @@ def main():
                     keep=False
                     c+=1
                     break
+                elif v[3]==x[0]: #if cnv starts at same base as existing cnv
+                    keep=False
+                    c+=1
+                    break
             if c>100:
                 print('Warning, not enough room in genome for so many CNVs. Program may not end. Kill me now...')
 
@@ -351,11 +352,11 @@ def main():
                     keep=False
             if v[7]=='i':
                 for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in deletions dictionary
-                    if v[3] <= x[1] and  v[3]+1 >= x[0]:   #if previous base in deleted region
+                    if v[3] <= x[1] and  v[3]+1 >= x[0]:   #if start position (or previous base) in deleted region
                         keep=False
             if v[7]=='d':
                 for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in deletions dictionary
-                    if (v[3] <= x[1] and  v[3]+1 >= x[0]) or (v[3]+1 +v[4]-1 <= x[1] and  v[3]+1+v[4]-1 >= x[0]):   #if previous base or end position in deleted region
+                    if (v[3] <= x[1] and  v[3]+1 >= x[0]) or (v[3]+1 +v[4]-1 <= x[1] and  v[3]+1+v[4]-1 >= x[0]):   #if start position(or previous base) or end position in deleted region
                         keep=False
                 for x in lists[3][v[1]+v[2]]:    #for each breakpoint pair in cnv breakpoints dictionary
                     if (v[3] <= x[0] and  v[3]+1 +v[4]-1  >= x[0]) or (v[3] <= x[1] and  v[3]+1 +v[4]-1 >= x[1]):   #if cnv start position or end position in deleted region
@@ -374,7 +375,6 @@ def main():
         keep=False
         while keep==False:
             v=createsnv(gen,lists[1],dbsnvs,dbsnpsnvproportion)
-            dbsnvs=dbsnvs[1:]
             keep=True
             if v[3] in lists[2][v[1]+v[2]]:  #if position exists in dictionary
                 keep=False
@@ -451,6 +451,12 @@ def main():
     gen,reference=readinfai(chromosomes,parameters['fai'],parameters['reference'])  #get dictionaries of genome lengths and sequences
     print('Tumour clones : ',clones)
 
+    #read in dbsnp if given
+    if parameters['dbsnp'] != 'none':
+        dbsnvs,dbindels=readindbsnp(parameters['dbsnp'],gen)
+    else:
+        dbsnvs={}
+        dbindels={}
 
     #Get total number of each variant type for somatic and germline genomes
     snvgernum=round(sum(list(gen.values()))*parameters['snvgermline'])
@@ -468,12 +474,6 @@ def main():
     print('Number of somatic deletion CNVs : ',parameters['cnvdelsomatic'])
     print('Number of somatic aneuploid events : ',parameters['aneuploid'])
 
-    #read in dbsnp if given
-    if parameters['dbsnp'] != 'none':
-        dbsnvs,dbindels=readindbsnp(parameters['dbsnp'],gen,snvgernum,indgernum)
-    else:
-        dbsnvs={}
-        dbindels={}
 
     #Get germline variants ---------------------------------------------------------------------------------------------------
 
