@@ -415,7 +415,7 @@ def main():
 
 
     #write variant files
-    #writeblocksfile(parameters['directory'],parameters['prefix'],clo,hapvars,modchros)
+    #writeblocksfile(parameters['directory'],parameters['prefix'],clo,hapvars,modchros)   #This can be uncommented and used for testing if needed
     writecnvfile(parameters['directory'],parameters['prefix'],clo,combcnvs)
     writevcffile(parameters['directory'],parameters['prefix'],clo,combvcfs)
 

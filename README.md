@@ -12,7 +12,7 @@ Python3 is required to run both HeteroGenesis and FreqCalc. numpy is also requir
 Both tools have been tested with Python 3.5.2 and numpy 1.12.0 and 1.12.1.
 ## Installation
 
-In the heterogenesis directory, type:
+In the HeteroGenesis directory:
 ```
 python setup.py install
 ```
@@ -28,9 +28,49 @@ The second part, **heterogenesis\_varincorp** is then run, once for each clone, 
 **FreqCalc** can then be run to cobine outputs from clones to generate bulk tumour outputs. It takes a file containing the proportions of each clone in a tumour, along with the outputs from heterogenesis\_varincorp, and outputs equivalent files for the bulk tumour.
 
 
+##Implementation
+
+###heterogenesis_vargen 
+
+```
+heterogenesis\_vargen -j example.json
+
+```
+-v/--version : Version 
+
+-j/--json : JSON file containing parameters. 
+
+###heterogenesis_varincorp
+
+```
+heterogenesis\_varincorp -j example.json -c clone
+
+```
+-v/--version : Version 
+
+-j/--json : JSON file containing parameters. 
+
+-c/--clone : Name of clone to generate genomes for.
+
+###FreqCalc
+
+```
+freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix}
+
+```
+-v/-—version : Version 
+
+-c/--clones : File with clone proportions in format: 'clone name' \t 'fraction’.
+
+-d/--directory : Directory containing VCF and CNV files.
+
+-p/--prefix : Prefix of VCF and CNV file names. This will be the same as what was provided for the ‘prefix’ parameter with HeteroGenesis.
+
+
 ##Inputs
 
 ###heterogenesis_vargen
+
 1. **Reference Genome:**
 The starting genome sequence, in FASTA format, that variants will be incorporated into. 
 2. **Reference Genome Index:**
@@ -82,55 +122,48 @@ CNV lengths and copy numbers, and indel lengths are taken from lognormal distrib
 
 ###heterogenesis_varincorp
 
-1. **Parameters File:**
+1. **Variants File:** From heterogenesis\_vargen. 
+
+2. **Parameters File:**
 The same JSON file as used for heterogenesis\_vargen can be given but only the following parameters are used. These should contain the same values as given for heterogenesis\_vargen: 
 
 |Parameter|Description|Default Value| 
 |---|---|---|
 |prefix	|String added to output file names.|""|
 |reference|FASTA file containing the sequence of a reference or other input genome. Must have a .fai index file located in the same directory. |Required|
-|directory|Directory containing JSON output from heterogenesis\_vargen and where output files will be written to.|"./"|
+|directory|Directory containing the JSON variants file output from heterogenesis\_vargen and where output files will be written to.|"./"|
 |chromosomes|List of chromosomes included in the model. Alternatively, "all" can be given, in which case chromosomes 1-22 will be used. This only works for genomes for which chromosomes are labelled 'chr1','chr2'... (Also note that X and Y are not included with "all")|”all”|
 
 ### FreqCalc
 
 1. **Clones File:**
-File with clone proportions in format: 'clone name' \t 'fraction’.
+File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
 
 2. **Outputs From heterogenesi\_varincorp**
 
 ##Outputs
 
 ###heterogenesis_vargen
-...
+1. **Varaints File:** A JSON file containing information from a python dictionary in the format: [clone][chromosome][variants, SNV/InDel positions, CNV breakpoints, deleted regions]
+
 ###heterogenesis_varincorp
-...
+1. **CNV File:** This records the copy number status along the genome, in the format:
+	'chromosome, start position, end position, copy number'
+
+2. **VCF File:** This records the position and variant allele frequency (VAF) for each SNV/InDel in the format:
+
+	'chromosome, position, . , reference allele, alternative allele, . , . , (VAF,HAPS,CN)', where:
+	
+	VAF = variant allele frequency
+	
+	HAPS = the number of copies of the variant on each chromosome haplotype (or copy of a chromosome)
+	
+	CN = the copy number of the chromosome at the variant position.
+
+3. **Genome Sequences:** One for each copy of a chromosome, in FASTA format.
+
 ### FreqCalc
-...
-##Implementation
-
-**heterogenesis_vargen** and **heterogenesis_varincorp** are run with the following:
-
-```
-heterogenesis\_vargen -j example.json
-heterogenesis\_varincorp -j example.json
-
-```
--v/--version : Version 
-
--j/--json : JSON file containing parameters. 
-
-**FreqCalc** is run with:
-
-```
-freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix}
-
-```
--v/-—version : Version 
-
--c/--clones : File with clone proportions in format: 'clone name' \t 'fraction’.
-
--d/--directory : Directory containing VCF and CNV files.
-
--p/--prefix : Prefix of VCF and CNV file names. This will be the same as what was provided for the ‘prefix’ parameter with HeteroGenesis.
+1. **CNV File:** This records the averaged copy number status along the genome for a bulk tumour sample.
+ 
+2. **VCF File:** This records the combined SNV/InDel positions and averaged VAFs for a bulk tumour sample.
 

@@ -538,7 +538,7 @@ def main():
     while len(unsortedclones)!=0:
         for clo in list(unsortedclones.keys()):   #write files for clones for which parent clone's files have been written
             if clones[clo][1] in sortedclones:
-                variants[clo]=[[],{},{},{},{}] #variants-0, haplotypes-1, dict of SNV positions-2, dict of CNV breakpoints-3, dict of deleted regions-4, dict of indel positions-5
+                variants[clo]=[[],{},{},{},{}] #variants-0, haplotypes-1, dict of SNV positions-2, dict of CNV breakpoints-3, dict of deleted regions-4
                 if clones[clo][1] != 'germline': #if parent clone isn't germline then copy variants from parent clone
                     for a in variants[clones[clo][1]][0]: variants[clo][0].append(a) #copy variants
                     for a in list(variants[clones[clo][1]][1]): variants[clo][1][a]=list(variants[clones[clo][1]][1][a])  #copy chromosome haplotypes
