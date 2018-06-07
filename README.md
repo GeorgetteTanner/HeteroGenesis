@@ -28,9 +28,9 @@ The second part, **heterogenesis\_varincorp** is then run, once for each clone, 
 **FreqCalc** can then be run to cobine outputs from clones to generate bulk tumour outputs. It takes a file containing the proportions of each clone in a tumour, along with the outputs from heterogenesis\_varincorp, and outputs equivalent files for the bulk tumour.
 
 
-##Implementation
+## Implementation
 
-###heterogenesis_vargen 
+### heterogenesis_vargen 
 
 ```
 heterogenesis\_vargen -j example.json
@@ -40,7 +40,7 @@ heterogenesis\_vargen -j example.json
 
 -j/--json : JSON file containing parameters. 
 
-###heterogenesis_varincorp
+### heterogenesis_varincorp
 
 ```
 heterogenesis\_varincorp -j example.json -c clone
@@ -52,7 +52,7 @@ heterogenesis\_varincorp -j example.json -c clone
 
 -c/--clone : Name of clone to generate genomes for.
 
-###FreqCalc
+### FreqCalc
 
 ```
 freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix}
@@ -67,9 +67,9 @@ freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix}
 -p/--prefix : Prefix of VCF and CNV file names. This will be the same as what was provided for the ‘prefix’ parameter with HeteroGenesis.
 
 
-##Inputs
+## Inputs
 
-###heterogenesis_vargen
+### heterogenesis_vargen
 
 1. **Reference Genome:**
 The starting genome sequence, in FASTA format, that variants will be incorporated into. 
@@ -120,7 +120,7 @@ CNV lengths and copy numbers, and indel lengths are taken from lognormal distrib
 |cnvcopiesvariance|CNV copies lognormal variance.|0.5|
 
 
-###heterogenesis_varincorp
+### heterogenesis_varincorp
 
 1. **Variants File:** From heterogenesis\_vargen. 
 
@@ -141,12 +141,12 @@ File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
 
 2. **Outputs From heterogenesi\_varincorp**
 
-##Outputs
+## Outputs
 
-###heterogenesis_vargen
+### heterogenesis_vargen
 1. **Varaints File:** A JSON file containing information from a python dictionary in the format: [clone][chromosome][variants, SNV/InDel positions, CNV breakpoints, deleted regions]
 
-###heterogenesis_varincorp
+### heterogenesis_varincorp
 1. **CNV File:** This records the copy number status along the genome, in the format:
 	'chromosome, start position, end position, copy number'
 
