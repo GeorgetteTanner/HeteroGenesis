@@ -145,7 +145,7 @@ def main():
             clones[structure[i*3-3]]=[structure[i*3-2],structure[i*3-1]]
         return(clones)
 
-    def readindbsnp(dbsnp,gen,snvgernum,indgernum):    #formats structure parameter into dictionary
+    def readindbsnp(dbsnp,gen,reference,snvgernum,indgernum):    #formats structure parameter into dictionary
         dbsnvalt={}
         dbindelalt={}
         dbsnvmaf={}
@@ -159,12 +159,21 @@ def main():
             dbindelmaf[chro]=[]
         with open(dbsnp,'r') as file:
             for l in file:
-                if l[0]=='s':
-                    dbsnvalt[l[1]].append([l[2],l[3]]) #append position and alt allele to chromosome key 
-                    dbsnvmaf[l[1]].append(l[4]) #append MAF to chromosome key 
+                if l[2].startswith('.'):    #if variant is an indel
+                    if l[2][1]=='-':    #if variant is a deletion
+                        ref=reference[l[0]][l[1]-1:l[1]+len(l[2])-1]   #get reference base for variant chromosome from variant position + length (minus 1 to account for python starting at 0, and minus one to account for non inclusive range max)
+                        alt=ref[0]
+                    else:   #if variant is an insertion
+                        ref=reference[l[0]][l[1]-1]
+                        alt=ref+l[2][1:]
+                    dbsnvalt[l[0]].append([l[1],ref,alt]) #append position and alt allele to chromosome key 
+                    dbsnvmaf[l[0]].append(l[3]) #append MAF to chromosome key 
                 else:
-                    dbindelalt[l[1]].append([l[2],l[3]]) #append position and alt allele to chromosome key 
-                    dbindelmaf[l[1]].append(l[4]) #append MAF to chromosome key 
+                    alt=l[1]
+                    ref=ref=reference[l[0]][l[1]-1]
+                    if alt!=ref:
+                        dbindelalt[l[0]].append([l[1],ref,alt]) #append position and alt allele to chromosome key 
+                        dbindelmaf[l[0]].append(l[3]) #append MAF to chromosome key 
         for chro in gen:
             p=dbsnvmaf[chro]
             p /= p.sum()  # normalize
@@ -246,11 +255,13 @@ def main():
             i=False
         else:
             i=numpy.random.choice([True,False],1,p=[float(pro),(1-float(pro))])[0]
-        if i == True:   #if taking variant form dnindels
+        if i == True:   #if taking variant form dbindels
             l=dbsnvs[chro][0]
             position=int(l[0])
-            ref=reference[chro][position-1]
-            alt=l[1]
+            ref=l[1]
+            alt=l[2]
+            dbsnvs[chro]=dbsnvs[chro][1:]
+            print(['snv',chro,hap,position,ref,alt])
         else:
             ref='N'
             while ref=='n' or ref=='N':
@@ -266,7 +277,7 @@ def main():
             substitutions['c']=['t','g','a']
             substitutions['g']=['t','a','c']
             alt=str(numpy.random.choice(substitutions[ref]))
-        return ['snv',chro,hap,position,ref,alt]
+        return [['snv',chro,hap,position,ref,alt],dbsnvs]
 
     def createind(gen,chrohaps,dbindels,pro):    #create information for an indel variant
         chro,hap=choosechromosome(gen,chrohaps)
@@ -276,17 +287,17 @@ def main():
             i=numpy.random.choice([True,False],1,p=[float(pro),(1-float(pro))])[0]
         if i == True:   #if taking variant form dnindels
             l=dbindels[chro][0]
-            ########################
-            print(l)
             position=int(l[0])
             ref=l[1]
             alt=l[2]
+            dbindels[chro]=dbindels[chro][1:]
             if len(ref) != 1:
                 length=len(ref)
                 iod='d'
             else:
                 length=len(alt)
                 iod='i'
+            print(['indel',chro,hap,position,length,ref,alt,iod])
         else:
             length=101
             while length>50:
@@ -307,8 +318,7 @@ def main():
                     seq=reference[chro][position-1:position+length]#get ref + deleted sequence
                     ref=seq
                     alt=ref[0]
-        print(['indel',chro,hap,position,length,ref,alt,iod])
-        return ['indel',chro,hap,position,length,ref,alt,iod]
+        return [['indel',chro,hap,position,length,ref,alt,iod],dbindels]
 
     def getcnv(gen,lists,vartype,somorger):
         keep=False
@@ -470,7 +480,7 @@ def main():
 
     #read in dbsnp if given
     if parameters['dbsnp'] != 'none':
-        dbsnvs,dbindels=readindbsnp(parameters['dbsnp'],gen,snvgernum,indgernum)
+        dbsnvs,dbindels=readindbsnp(parameters['dbsnp'],gen,reference,snvgernum,indgernum)
     else:
         dbsnvs={}
         dbindels={}
