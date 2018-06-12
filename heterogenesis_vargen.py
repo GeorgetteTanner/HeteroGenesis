@@ -170,7 +170,7 @@ def main():
                     dbsnvmaf[l[0]].append(l[3]) #append MAF to chromosome key 
                 else:
                     alt=l[1]
-                    ref=ref=reference[l[0]][l[1]-1]
+                    ref=reference[l[0]][l[1]-1]
                     if alt!=ref:
                         dbindelalt[l[0]].append([l[1],ref,alt]) #append position and alt allele to chromosome key 
                         dbindelmaf[l[0]].append(l[3]) #append MAF to chromosome key 
