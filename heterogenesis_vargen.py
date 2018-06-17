@@ -159,28 +159,36 @@ def main():
             dbindelmaf[chro]=[]
         with open(dbsnp,'r') as file:
             for l in file:
-                if l[2].startswith('.'):    #if variant is an indel
-                    if l[2][1]=='-':    #if variant is a deletion
-                        ref=reference[l[0]][l[1]-1:l[1]+len(l[2])-1]   #get reference base for variant chromosome from variant position + length (minus 1 to account for python starting at 0, and minus one to account for non inclusive range max)
-                        alt=ref[0]
-                    else:   #if variant is an insertion
-                        ref=reference[l[0]][l[1]-1]
-                        alt=ref+l[2][1:]
-                    dbsnvalt[l[0]].append([l[1],ref,alt]) #append position and alt allele to chromosome key 
-                    dbsnvmaf[l[0]].append(l[3]) #append MAF to chromosome key 
-                else:
-                    alt=l[1]
-                    ref=reference[l[0]][l[1]-1]
-                    if alt!=ref:
+                l=l.strip().split("\t")
+                if l[0] in reference:
+                    if l[1]=='?': continue
+                    if l[2].startswith('.'):    #if variant is an indel
+                        if l[2][1]=='-':    #if variant is a deletion
+                            ref=reference[l[0]][int(l[1])-1:int(l[1])+len(l[2])-1]   #get reference base for variant chromosome from variant position + length (minus 1 to account for python starting at 0, and minus one to account for non inclusive range max)
+                            alt=ref[0]
+                        else:   #if variant is an insertion
+                            ref=reference[l[0]][int(l[1])-1]
+                            alt=ref+l[2][1:]
                         dbindelalt[l[0]].append([l[1],ref,alt]) #append position and alt allele to chromosome key 
                         dbindelmaf[l[0]].append(l[3]) #append MAF to chromosome key 
+                    else:
+                        alt=l[2]
+                        ref=reference[l[0]][int(l[1])-1]
+                        if alt!=ref:
+                            dbsnvalt[l[0]].append([l[1],ref,alt]) #append position and alt allele to chromosome key 
+                            dbsnvmaf[l[0]].append(l[3]) #append MAF to chromosome key 
         for chro in gen:
-            p=dbsnvmaf[chro]
-            p /= p.sum()  # normalize
-            dbsnvs[chro]=numpy.random.choice(dbsnvalt[chro],size=len(dbsnvalt[chro])/2, p=p, replace=False) #sample half of total number - shouldn't need more and probabilities would get very distorted if sampling up to the total number 
-            p=dbindelmaf[chro]
-            p /= p.sum()  # normalize
-            dbindels[chro]=numpy.random.choice(dbindelalt[chro],size=len(dbsnvalt[chro])/2, p=p, replace=False)
+            p=[float(i) for i in dbsnvmaf[chro]]
+            s=sum(p)
+            p = [i/s for i in p] # normalize
+ 
+            dlist=numpy.random.choice(range(0,len(dbsnvalt[chro])),size=int(len(dbsnvalt[chro])/2), p=p, replace=False)    #sample half of total number - shouldn't need more and probabilities would get very distorted if sampling up to the total number         
+            dbsnvs[chro]=[dbsnvalt[chro][d] for d in dlist]
+            p=[float(i) for i in dbindelmaf[chro]]
+            s=sum(p)
+            p = [i/s for i in p] # normalize
+            dlist=numpy.random.choice(range(0,len(dbindelalt[chro])),size=int(len(dbindelalt[chro])/2), p=p, replace=False)            
+            dbindels[chro]=[dbindelalt[chro][d] for d in dlist]
         return(dbsnvs,dbindels)
 
     def readinfai(chromosomes,fai,referencefile): #reads in reference and fai files for required chromosomes into dictionaries
@@ -355,7 +363,7 @@ def main():
         #-1 is added to length as the first base of the indel (position+1) is included in the length
         keep=False
         while keep==False:
-            v=createind(gen,lists[1],dbindels,dbsnpindelproportion)
+            v,dbindels=createind(gen,lists[1],dbindels,dbsnpindelproportion)
             keep=True
             if v[3] in lists[2][v[1]+v[2]]:  #if position exists in snv/indel dictionary
                     keep=False
@@ -378,22 +386,23 @@ def main():
         lists[2][v[1]+v[2]].append(v[3]) #add to the indel dictionary for key(chromosome+haplotype)
         if v[6]=='d': #if indel is a deletion
             lists[4][v[1]+v[2]].append([v[3]+1,v[3]+1+v[4]-1]) #add to the deleted regions dictionary for key(chromosome+haplotype), [start,end] - previous base is also added to simplify the genome writing stage (don't want a cnv starting/ending between previous base and deleted region)
-        return(lists)
+        return(lists,dbindels)
 
     def getsnv(gen,lists,dbsnvs,dbsnpsnvproportion):
         keep=False
         while keep==False:
-            v=createsnv(gen,lists[1],dbsnvs,dbsnpsnvproportion)
-            dbsnvs=dbsnvs[1:]
+            v,dbsnvs=createsnv(gen,lists[1],dbsnvs,dbsnpsnvproportion)
             keep=True
             if v[3] in lists[2][v[1]+v[2]]:  #if position exists in dictionary
+                keep=False
+            if v[4].upper==v[5].upper:  #if ref==alt from dbsnp
                 keep=False
             for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in dictionary
                 if v[3] <= x[1] and  v[3] >= x[0]:   #if position in deleted region
                     keep=False
         lists[0].append(v)   #add variant to variants list
         lists[2][v[1]+v[2]].append(v[3])
-        return(lists)
+        return(lists,dbsnvs)
 
     def getaneu(gen,lists):
         v=createaneu(gen,lists[1])
@@ -466,7 +475,7 @@ def main():
     snvgernum=round(sum(list(gen.values()))*parameters['snvgermline'])
     snvsomnum=round(sum(list(gen.values()))*parameters['snvsomatic'])
     indgernum=round(sum(list(gen.values()))*parameters['indgermline'])
-    indsomnum=round(sum(list(gen.values()))*parameters['indgermline'])
+    indsomnum=round(sum(list(gen.values()))*parameters['indsomatic'])
 
     print('Number of germline SNVs : ',snvgernum)
     print('Number of somatic SNVs : ',snvsomnum)
@@ -507,9 +516,9 @@ def main():
         if vartype == 'cnvrep' or vartype == 'cnvdel':
             germlinevariants=getcnv(gen,germlinevariants,vartype,'germline')
         elif vartype == 'indel':
-            germlinevariants=getind(gen,germlinevariants,dbindels,parameters['dbsnpindelproportion'])
+            germlinevariants,dbindels=getind(gen,germlinevariants,dbindels,parameters['dbsnpindelproportion'])
         elif vartype == 'snv':
-            germlinevariants=getsnv(gen,germlinevariants,dbsnvs,parameters['dbsnpsnvproportion'])
+            germlinevariants,dbsnvs=getsnv(gen,germlinevariants,dbsnvs,parameters['dbsnpsnvproportion'])
 
 
     #Get somatic variants ---------------------------------------------------------------------------------------------------
@@ -573,9 +582,9 @@ def main():
                     if vartype == 'cnvrep' or vartype == 'cnvdel':
                         variants[clo]=getcnv(gen,variants[clo],vartype,'somatic')
                     elif vartype == 'indel':
-                        variants[clo]=getind(gen,variants[clo],'','')
+                        variants[clo],dontneed=getind(gen,variants[clo],'','')
                     elif vartype == 'snv':
-                        variants[clo]=getsnv(gen,variants[clo],'','')
+                        variants[clo],dontneed=getsnv(gen,variants[clo],'','')
                     elif vartype == 'aneu':
                         variants[clo]=getaneu(gen,variants[clo])
 
