@@ -76,7 +76,7 @@ The starting genome sequence, in FASTA format, that variants will be incorporate
 2. **Reference Genome Index:**
 A .fai index file for the reference genome, created with samtools faidx. This should be saved in the same directory as the reference genome.
 3. **dbSNP File:**
-...
+This file has been created using dbsnpextractor (https://github.com/GeorgetteTanner/dbsnpextractor) with the flat files available from dbSNP (https://www.ncbi.nlm.nih.gov/projects/SNP/). Minor allele positions and frquencies are recorded in the following format
 
 4. **Parameters File:**
 A JSON file containing run parameters and locations of other inputs. Any parameter that is missing from the file will be set at its default value:

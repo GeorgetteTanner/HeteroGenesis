@@ -1,7 +1,7 @@
 {
 "prefix":"prefix",
 "reference":"/Users/Homo_sapiens_assembly38.fasta",
-"dbsnp":"/Users/dbsnp_138.hg38.vcf",
+"dbsnp":"/Users/dsdata.txt",
 "structure":"clone1,0.2,germline,clone2,0.8,clone1",
 "directory":"./",
 "snvgermline":0.000001,

@@ -269,7 +269,6 @@ def main():
             ref=l[1]
             alt=l[2]
             dbsnvs[chro]=dbsnvs[chro][1:]
-            print(['snv',chro,hap,position,ref,alt])
         else:
             ref='N'
             while ref=='n' or ref=='N':
@@ -305,7 +304,6 @@ def main():
             else:
                 length=len(alt)
                 iod='i'
-            print(['indel',chro,hap,position,length,ref,alt,iod])
         else:
             length=101
             while length>50:

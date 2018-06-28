@@ -301,6 +301,14 @@ def main():
             recorded[c.start]=''
         #sort cnvs
         combined=sorted(combined,key=getstart)
+        #fill in gaps where cn=0
+        contin=True
+        while contin==True:
+            for i in range(0, len(combined)):
+                if i!=len(combined)-1: 
+                    if combined[i].end+1!=combined[i+1].start:
+                        combined.insert(i+1,BLOCK(combined[i].end+1,combined[i+1].start-1,0))
+                        continue    #start from beginning as list has been changed
         return combined
 
     def combinevcfs(modchro,combcnvs):
