@@ -302,12 +302,14 @@ def main():
         #sort cnvs
         combined=sorted(combined,key=getstart)
         #fill in gaps where cn=0
-        contin=True
-        while contin==True:
+        contin=False
+        while contin==False:
+            contin=True
             for i in range(0, len(combined)):
-                if i!=len(combined)-1: 
+                if i!=len(combined)-1:
                     if combined[i].end+1!=combined[i+1].start:
                         combined.insert(i+1,BLOCK(combined[i].end+1,combined[i+1].start-1,0))
+                        contin=False
                         continue    #start from beginning as list has been changed
         return combined
 
