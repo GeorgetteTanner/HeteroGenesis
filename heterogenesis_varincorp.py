@@ -329,20 +329,23 @@ def main():
                 else:
                     combined[v][5].append([allvcfs[hap][v].haplo,allvcfs[hap][v].final])
         #Fill in the missing data
+        needtodel=[]            
         for v in combined:
-            #get total number of variant copies copy
+            #get total number of variant copies
             total=sum([i[1] for i in combined[v][5]])
             if total==0:
-                del combined[v]
-                continue
-            combined[v][4]=total
-            #get copy number
-            for cnv in combcnvs:
-                if VCFVAR(combined[v][0],'','','','','').incnv(cnv):
-                    cn=cnv.content
-            combined[v][6]=cn
-            #get frequencies
-            combined[v][3]=round(total/cn,5)
+                needtodel.append(v)
+            else:
+                combined[v][4]=total
+                #get copy number
+                for cnv in combcnvs:
+                    if VCFVAR(combined[v][0],'','','','','').incnv(cnv):
+                        cn=cnv.content
+                combined[v][6]=cn
+                #get frequencies
+                combined[v][3]=round(total/cn,5)
+        for v in needtodel:
+            del combined[v]
         return combined
 
     def writebasestringtofile(parameters,clo,chro,hap,basestring):
