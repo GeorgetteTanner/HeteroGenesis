@@ -310,7 +310,7 @@ def main():
                     if combined[i].end+1!=combined[i+1].start:
                         combined.insert(i+1,BLOCK(combined[i].end+1,combined[i+1].start-1,0))
                         contin=False
-                        continue    #start from beginning as list has been changed
+                        break    #start from beginning as list has been changed
         return combined
 
     def combinevcfs(modchro,combcnvs):
@@ -332,6 +332,9 @@ def main():
         for v in combined:
             #get total number of variant copies copy
             total=sum([i[1] for i in combined[v][5]])
+            if total==0:
+                del combined[v]
+                continue
             combined[v][4]=total
             #get copy number
             for cnv in combcnvs:
