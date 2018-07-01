@@ -272,9 +272,10 @@ def main():
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([leftblock,newblock,rightblock])
         return blocks
 
-    def combinecnvs(modchro):
+    def combinecnvs(modchro,gen,chro):
         #put all cnv blocks into one list
-        allcnvs=[]
+        #start with empty block to fill in regions that have been deleted in all copies of a chromosome
+        allcnvs=[BLOCK(0,gen[chro],0)]
         for hap in modchro:
             allcnvs.extend(modchro[hap].cnblocks)
         contin=False
@@ -301,16 +302,6 @@ def main():
             recorded[c.start]=''
         #sort cnvs
         combined=sorted(combined,key=getstart)
-        #fill in gaps where cn=0
-        contin=False
-        while contin==False:
-            contin=True
-            for i in range(0, len(combined)):
-                if i!=len(combined)-1:
-                    if combined[i].end+1!=combined[i+1].start:
-                        combined.insert(i+1,BLOCK(combined[i].end+1,combined[i+1].start-1,0))
-                        contin=False
-                        break    #start from beginning as list has been changed
         return combined
 
     def combinevcfs(modchro,combcnvs):
@@ -424,7 +415,7 @@ def main():
                 elif var[0]=='aneu':
                     pass    #no need to do anything
             modchros[chro][hap].addupfinalvcfs()
-        combcnvs[chro]=combinecnvs(modchros[chro])
+        combcnvs[chro]=combinecnvs(modchros[chro],gen,chro)
         combvcfs[chro]=combinevcfs(modchros[chro],combcnvs[chro])
 
     #write output files ------------------------------------------------------------------------------------------------------
