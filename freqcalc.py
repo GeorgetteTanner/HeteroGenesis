@@ -152,7 +152,7 @@ def main():
         comvars[var][4]=round(float(comvars[var][4])/float(cns[comvars[var][0]][comvars[var][1]]),5)  #divide total number of copies by overall copy number to get overall VAF   
     with open(args.directory + args.prefix + 'tumour.vcf','w+') as file:
         for var in comvars:
-            file.write(comvars[var][0]+'\t'+str(comvars[var][1]) +'\t.\t.\t'+comvars[var][2]+'\t'+str(comvars[var][3])+'\t.\t.\tVAF=['+str(round(comvars[var][4],5))+']\n')
+            file.write(comvars[var][0]+'\t'+str(comvars[var][1]) +'\t.\t.\t'+comvars[var][2]+'\t'+str(comvars[var][3])+'\t.\t.\t'+str(round(comvars[var][4],5))+'\n')
 
 # If run as main, run main():
 if __name__ == '__main__': main()
