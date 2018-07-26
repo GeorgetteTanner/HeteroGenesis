@@ -155,6 +155,7 @@ File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
 ### heterogenesis_varincorp
 1. **CNV File:** This records the copy number status along the genome, in the format:
 	'chromosome, start position, end position, copy number'
+	(Positions are 1 based.)
 
 2. **VCF File:** This records the position and variant allele frequency (VAF) for each SNV/InDel in the format:
 

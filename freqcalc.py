@@ -101,27 +101,9 @@ def main():
             clones[c]=p
     #Check proportions add up to 1
     tot=sum([float(clones[x]) for x in clones])
-    if tot != 1:
-        print('Error: Clone proportions add up to ' + str(tot) + ', not 1.')
+    if round(tot,5) != 1:
+        print('Warning: Clone proportions add up to ' + str(tot) + ', not 1.')
 
-    #Get all vars from vcf files
-    allvars=[]
-    for clo in clones:
-        with open(args.directory + args.prefix + clo + '.vcf','r') as file:
-            for line in file:
-                var=line.split('\t')
-                allvars.append([var[0],str(var[1]),str(var[2]),str(var[3]),str(var[4]),str(clones[clo])])
-
-    #combine all vars
-    comvars={}
-    for var in allvars:
-        if var[0]+var[1] in comvars:
-            comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[5]))   #replaces current value with current value + (new freqvalue * clo proportion)
-        else:
-            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[5]))]
-    with open(args.directory + args.prefix + 'tumour.vcf','w+') as file:
-        for var in comvars:
-            file.write(comvars[var][0]+'\t'+str(comvars[var][1]) +'\t.\t.\t'+comvars[var][2]+'\t'+str(comvars[var][3])+'\t.\t.\tVAF=['+str(round(comvars[var][4],5))+']\n')
 
     #Get all cnvs from cnv files
     allcnvs={}
@@ -138,10 +120,39 @@ def main():
     for chromo in allcnvs:
         comcnvs[chromo]=combinecnvs(allcnvs[chromo])
 
+    #write file and create dictionary for quick lookup of copy numbers
+    cns={}
     with open(args.directory + args.prefix + 'tumourcnv.txt','w') as file:
         for chromo in comcnvs:
+            cns[chromo]={}
             for cnv in comcnvs[chromo]:
                 file.write(chromo+'\t'+str(cnv.start) +'\t'+str(cnv.end)+'\t'+str(cnv.content)+'\n')
+                c=cnv.content                
+                for base in range(cnv.start,cnv.end+1):               
+                    cns[chromo][base]=c
+
+
+    #Get all vars from vcf files
+    allvars=[]
+    for clo in clones:
+        with open(args.directory + args.prefix + clo + '.vcf','r') as file:
+            for line in file:
+                var=line.split('\t')
+                allvars.append([var[0],str(var[1]),str(var[2]),str(var[3]),int(var[5]),int(clones[clo])]) #(var[5])-number of copies, (clones[clo])-clone proportion 
+                
+                
+    #combine all vars
+    comvars={}
+    for var in allvars:
+        if var[0]+var[1] in comvars:
+            comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[5]))   #add to current value
+        else:
+            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[5]))]  #multiply number of copies by clone proportion
+    for var in comvars:
+        comvars[var][4]=round(float(comvars[var][4])/float(cns[comvars[var][0]][comvars[var][1]]),5)  #divide total number of copies by overall copy number to get overall VAF   
+    with open(args.directory + args.prefix + 'tumour.vcf','w+') as file:
+        for var in comvars:
+            file.write(comvars[var][0]+'\t'+str(comvars[var][1]) +'\t.\t.\t'+comvars[var][2]+'\t'+str(comvars[var][3])+'\t.\t.\tVAF=['+str(round(comvars[var][4],5))+']\n')
 
 # If run as main, run main():
 if __name__ == '__main__': main()

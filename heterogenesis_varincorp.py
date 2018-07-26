@@ -275,7 +275,7 @@ def main():
     def combinecnvs(modchro,gen,chro):
         #put all cnv blocks into one list
         #start with empty block to fill in regions that have been deleted in all copies of a chromosome
-        allcnvs=[BLOCK(0,gen[chro],0)]
+        allcnvs=[BLOCK(1,gen[chro],0)]
         for hap in modchro:
             allcnvs.extend(modchro[hap].cnblocks)
         contin=False
