@@ -144,8 +144,8 @@ def main():
         else:
             comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[5]))]  #multiply number of copies by clone proportion
     for var in comvars:
-        for cnv in comcnvs[var[0]]:
-            if int(var[1])>=cnv.start and int(var[1])<=cnv.end:
+        for cnv in comcnvs[comvars[var][0]]:
+            if int(comvars[var][1])>=cnv.start and int(comvars[var][1])<=cnv.end:
                 cn=cnv.content
                 break
         comvars[var][4]=round(float(comvars[var][4])/float(cn),5)  #divide total number of copies by overall copy number to get overall VAF   
