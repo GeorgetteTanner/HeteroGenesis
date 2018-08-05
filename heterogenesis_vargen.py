@@ -393,7 +393,7 @@ def main():
             keep=True
             if v[3] in lists[2][v[1]+v[2]]:  #if position exists in dictionary
                 keep=False
-            if v[4].upper==v[5].upper:  #if ref==alt from dbsnp
+            if v[4].upper()==v[5].upper():  #if ref==alt from dbsnp
                 keep=False
             for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in dictionary
                 if v[3] <= x[1] and  v[3] >= x[0]:   #if position in deleted region
