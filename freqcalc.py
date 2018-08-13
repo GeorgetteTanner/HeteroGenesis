@@ -28,7 +28,7 @@ def main():
     parser.add_argument('-c', '--clones', dest='clonefile', required=True, type=str, help="File with clone proportions in format: 'clone name' \t 'fraction'.")
     parser.add_argument('-d', '--directory', dest='directory', required=True, type=str, help='Directory containing VCF and CNV files.')
     parser.add_argument('-p', '--prefix', dest='prefix', required=True, type=str, help='Prefix of VCF and CNV file names.')
-
+    parser.add_argument('-n', '--name', dest='name', required=True, type=str, help='Output name of tumour sample.')
 
     args = parser.parse_args()
 
@@ -121,7 +121,7 @@ def main():
         comcnvs[chromo]=combinecnvs(allcnvs[chromo])
 
     #write file 
-    with open(args.directory + args.prefix + 'tumourcnv.txt','w') as file:
+    with open(args.directory + args.prefix + args.name + 'cnv.txt','w') as file:
         for chromo in comcnvs:
             for cnv in comcnvs[chromo]:
                 file.write(chromo+'\t'+str(cnv.start) +'\t'+str(cnv.end)+'\t'+str(cnv.content)+'\n')
@@ -149,7 +149,7 @@ def main():
                 cn=cnv.content
                 break
         comvars[var][4]=round(float(comvars[var][4])/float(cn),5)  #divide total number of copies by overall copy number to get overall VAF   
-    with open(args.directory + args.prefix + 'tumour.vcf','w+') as file:
+    with open(args.directory + args.prefix + args.name + '.vcf','w+') as file:
         for var in comvars:
             file.write(comvars[var][0]+'\t'+str(comvars[var][1]) +'\t.\t.\t'+comvars[var][2]+'\t'+str(comvars[var][3])+'\t.\t.\t'+str(round(comvars[var][4],5))+'\n')
 
