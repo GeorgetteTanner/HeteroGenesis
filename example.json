@@ -1,7 +1,7 @@
 {
 "prefix":"test1",
-"reference":"./Homo_sapiens_assembly38.fasta",
-"dbsnp":"./dsdata.txt",
+"reference":"../HeteroGenesis/Homo_sapiens_assembly38.fasta",
+"dbsnp":"../HeteroGenesis/dsdata.txt",
 "structure":"clone1,0.2,germline,clone2,0.8,clone1",
 "directory":"./",
 "snvgermline":0.000001,

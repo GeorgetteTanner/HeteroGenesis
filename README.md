@@ -199,14 +199,14 @@ gunzip dsdata.txt.gz
 #Remove the '"dbsnp":"./dsdata.txt",' line from example.json
 awk '!/dsdata/' example.json > temp ; mv temp example.json
 
-#make test directory
-mkdir ../test1
-cd ../test1
-
 #Download reference genome (or copy from locally saved reference genome to save time)
 wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.fasta.gz
 wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.fasta.fai
 gunzip Homo_sapiens_assembly38.fasta.gz
+
+#make test directory
+mkdir ../test1
+cd ../test1
 
 #Run heterogenesis_vargen
 heterogenesis_vargen -j ../HeteroGenesis/example.json
