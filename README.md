@@ -18,8 +18,9 @@ Both tools have been tested with Python 3.5.2 and numpy 1.12.0 and 1.12.1.
 
 ## Installation
 
-In the HeteroGenesis directory:
 ```
+git clone https://github.com/GeorgetteTanner/HeteroGenesis.git
+cd HeteroGenesis/
 python setup.py install
 ```
  
@@ -61,7 +62,7 @@ heterogenesis\_varincorp -j example.json -c clone
 ### FreqCalc
 
 ```
-freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix}
+freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix} -n {name}
 
 ```
 -v/-—version : Version 
@@ -82,7 +83,21 @@ The starting genome sequence, in FASTA format, that variants will be incorporate
 2. **Reference Genome Index:**
 A .fai index file for the reference genome, created with samtools faidx. This should be saved in the same directory as the reference genome.
 3. **dbSNP File:**
-This file has been created using dbsnpextractor (https://github.com/GeorgetteTanner/dbsnpextractor) with the flat files available from dbSNP (https://www.ncbi.nlm.nih.gov/projects/SNP/). Minor allele positions and frquencies are recorded in the following format
+A file of known germline SNVs and InDels, created using dbsnpextractor (https://github.com/GeorgetteTanner/dbsnpextractor) with the flat files available from dbSNP (https://www.ncbi.nlm.nih.gov/projects/SNP/). (Flat files are used instead of the dbSNP vcf file as that does not contain exact population allele frequencies.) These files must contain far more of both SNVs and InDels than the user wishes to simulate in order to allow more common variants to be incorporated more frequently than rarer ones.
+
+	Users can either download a pre-made subsampled version containing 10,000,000 variants (239271 deletions, 112984 insertions, 9647745 SNVs) (~1/8th of the total variants) from https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz, or recreate their own entire file. (Includes up to several days of downloading flat files!):
+	
+    ```bash
+for chromosome in $(seq 1 22) X Y ; \
+do wget ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/ASN1_flat/ds_flat_ch${chromosome}.flat.gz ; \
+gunzip ds_flat_ch${chromosome}.flat.gz ; done
+cat ds_flat_ch*flat | grep -E ‘SNP|GMAF|CTG' > ds_flat_combined.flat
+cd ..
+git clone https://github.com/GeorgetteTanner/dbsnpextractor.git
+cd dbsnpextractor
+dbsnpextractor.py -i ../HeteroGenesis/ds_flat_combined.flat -o ../HeteroGenesisdsdata.txt
+cd ../HeteroGenesis
+    ```
 
 4. **Parameters File:**
 A JSON file containing run parameters and locations of other inputs. Any parameter that is missing from the file will be set at its default value:
@@ -93,14 +108,15 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |---|---|---|
 |prefix	|String added to output file names.|""|
 |reference|FASTA file containing the sequence of a reference or other input genome. Must have a .fai index file located in the same directory. |Required|
-|dbsnp|VCF file from dbSNP containing known germline SNPs and InDels.|none|
+|dbsnp|Pre formatted file of known germline SNPs and InDels, created from flat files from dbSNP by dbsnpextractor.|none|
 |directory|Directory to output all files to.|"./"|
 |structure|Structure of clones in the tumour, in the format: “clone1\_name, clone1\_distance\_from\_parent, clone1\_parent\_name, clone2_name, clone2\_distance\_from\_parent, clone2\_parent\_name…”. All parent clone names must also be listed as a separate clone, ie. if clone2’s parent clone is clone1, then clone1 must also be listed as a clone with a parent clone. The exception to this is when the parent clone is ‘germline’, and this must occur at least once as the parent clone for the root clone of the tumour. Loops in the lineage will cause the program to never end, ie. clone1->clone2->clone3->clone1. Distances from parent clones can be any fraction or number as they are used relative to each other.|"clone1,0.2,germline,clone2,0.8,clone1"|
 |snvgermline|Rate of germline SNVs per base.|0.00014|
 |indgermline|Rate of germline indels per base|0.000014|
 |cnvrepgermline|Number of germline replication CNVs.|160|
 |cnvdelgermline|Number of germline deletion CNVs.|1000|
-|aneuploid|Number of somatic aneuploid events. i.e. replication or deletion of a chromosome. Copy number is randomly chosen from 0, 2 or 3. Germline aneuploid events are not available.|2|
+|aneuploid|Number of somatic aneuploid events. i.e. replication or deletion of chromosomes. These can either be whole genome duplication or individual chromosome duplication or deletion. Aneuploid events are prevented from deleting all copies of a chromosome. Germline aneuploid events are not available.|2|
+|wgdprob|Probability that each aneuploid event is a whole genome duplication.|0.0|
 |snvsomatic|Rate of somatic SNVs per base.|0.00001|
 |indsomatic|Rate of somatic indels per base.|0.000001|
 |cnvrepsomatic|Number of somatic replication CNVs.|250|
@@ -150,27 +166,98 @@ File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
 ## Outputs
 
 ### heterogenesis_vargen
-1. **Varaints File:** A JSON file containing information from a python dictionary in the format: [clone][chromosome][variants, SNV/InDel positions, CNV breakpoints, deleted regions]
+1. **_prefix_varaints.json:** A JSON file containing information from a python dictionary in the format: [clone][chromosome][variants, SNV/InDel positions, CNV breakpoints, deleted regions]. This is for use by heterogenesis_varincorp and not intended to be manulally viewed.
+2. **_prefixcloneX_variants.txt:** This file lists every variant that occured in the clone. 
 
 ### heterogenesis_varincorp
-1. **CNV File:** This records the copy number status along the genome, in the format:
-	'chromosome, start position, end position, copy number'
-	(Positions are 1 based.)
+1. **_prefixcloneX_cnv.txt:** This records the copy number status along the genome, allong with phased major/minor alleles.(Positions are 1 based.)
 
-2. **VCF File:** This records the position and variant allele frequency (VAF) for each SNV/InDel in the format:
+2. **_prefixcloneX_.vcf:** This records the position and variant allele frequency (VAF) for each SNV/InDel, allong with the number of occurences on each copy of a chromosome and the overall copy number at that position.
 
-	'chromosome, position, . , reference allele, alternative allele, . , . , (VAF,HAPS,CN)', where:
-	
-	VAF = variant allele frequency
-	
-	HAPS = the number of copies of the variant on each chromosome haplotype (or copy of a chromosome)
-	
-	CN = the copy number of the chromosome at the variant position.
-
-3. **Genome Sequences:** One for each copy of a chromosome, in FASTA format.
+3. **_prefixcloneXchrXX_.fasta:** The genome sequence in FASTA format. (One file for each copy of each chromosome.)
 
 ### FreqCalc
-1. **CNV File:** This records the averaged copy number status along the genome for a bulk tumour sample.
+1. **_prefixsample_cnv.txt:** This records the combined copy number status along the genome, allong with phased major/minor alleles, for the bulk tumour sample.(Positions are 1 based.)
  
-2. **VCF File:** This records the combined SNV/InDel positions and averaged VAFs for a bulk tumour sample.
+2. **_prefixsample_.vcf:** This records the combined position and variant allele frequency (VAF) for each SNV/InDel, allong with the number of occurences on each copy of a chromosome and the overall copy number at that position, for a bulk tumour sample.
 
+
+##Worked Example
+
+```bash
+#Install
+git clone https://github.com/GeorgetteTanner/HeteroGenesis.git
+cd HeteroGenesis/
+python setup.py install
+
+#If wanting germline variants from dbSNP: 
+#Download a pre-made file that contains 10,000,000 subsampled variants (approximately 1/8th of the total variants.):
+wget https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz
+gunzip dsdata.txt.gz
+
+#If not wanting to include dbSNP variants:
+#Remove the '"dbsnp":"./dsdata.txt",' line from example.json
+awk '!/dsdata/' example.json > temp ; mv temp example.json
+
+#make test directory
+mkdir ../test1
+cd ../test1
+
+#Download reference genome (or copy from locally saved reference genome to save time)
+wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.fasta.gz
+wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.fasta.fai
+gunzip Homo_sapiens_assembly38.fasta.gz
+
+#Run heterogenesis_vargen
+heterogenesis_vargen -j ../HeteroGenesis/example.json
+
+#Run heterogenesis_varincorp on each clone and germline
+for clone in clone1 clone2 germline ; do ../HeteroGenesis/heterogenesis_varincorp -j ../HeteroGenesis/example.json -c ${clone} ; done
+
+#Run freqcalc to create bulk sample variant profiles
+../HeteroGenesis/freqcalc -c ../HeteroGenesis/example_clones.txt -d . -p test1
+
+```
+
+If wanting to perform _in silico_ whole-exome sequencing of the created tumour then continue with the following (see https://github.com/GeorgetteTanner/w-Wessim for further details):
+
+
+```bash
+#Download programs:
+cd ..
+git clone https://github.com/GeorgetteTanner/w-Wessim.git
+git clone https://github.com/icebert/pblat.git
+#(need to find the correct binary file for your operating system:)
+wget http://hgdownload.soe.ucsc.edu/admin/exe/macOSX.x86_64/faToTwoBit
+chmod a+x ./fatotwobit
+
+#Download probe sequences and convert to fasta:
+cd w-Wessim
+wget ftp://ftp.sra.ebi.ac.uk/vol1/ERA157/ERA1574375/fastq/real_wes_reads_probes.fastq.gz
+gunzip real_wes_reads_probes.fastq.gz
+paste - - - - < real_wes_reads_probes.fastq | cut -f 1,2 | sed 's/^@/>/' | tr "\t" "\n" > real_wes_reads_probes.fa
+
+#Convert each chromosome fasta to 2bit:
+cd ../test1
+for f in prefix*.fasta ; do faToTwoBit $f > ${f}.2bit ; done
+
+#Blat:
+for f in prefix*.fasta.2bit ; do pblat $f real_wes_reads_probes.fa blatoutput_$(basename $f .fasta.2bit).psl -minScore=95 -minIdentity=95 ; done
+#Combine .psl files
+#Save the header (once will do but easier to automate the code:
+head -n 5 $(ls prefix*.fasta | head -1 ) > pslheader.txt
+#Remove the headers:
+for f in *.psl ; do tail -n+6 $f > noheader_$f ; done 
+#Combine noheader*.psl files and sort combined file on column 10: 
+for clone in clone1 clone2 germline ; do cat noheader_${clone}*.psl | sort -k 10 -n > sorted_combined_noheader_${clone}.psl ; done
+#Add the header:
+cat pslheader.txt sorted_combined_noheader_${clone}.psl > ${clone}.psl
+
+#Combine fasta files
+for clone in clone1 clone2 germline ; do cat prefix${clone}*.fasta > prefix${clone}.fasta ; done
+
+#w-Wessim:
+cd ../w-Wessim
+for clone in clone1 clone2 germline ; do python2 w-wessim2.py -R ../test1/prefix${clone}.fasta -P real_wes_reads_probes.fa -B ${clone}.psl -n 100000 -l d -M lib/hs2000p.gzip -pz -o ../test1/w-wessimoutput -t 1 -v -m 20 -f 170 -d 35
+
+```

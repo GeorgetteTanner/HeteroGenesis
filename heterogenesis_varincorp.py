@@ -20,6 +20,8 @@ from signal import signal, SIGPIPE, SIG_DFL
 import json
 from copy import deepcopy
 import os.path
+from sys import stderr, exit
+import datetime
 
 signal(SIGPIPE, SIG_DFL) # Handle broken pipes
 
@@ -27,6 +29,13 @@ version = {}
 with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'version.py')) as f: exec(f.read(), version)
 
 def main():
+
+    def warning(msg):
+        print('WARNING: {}'.format(msg), file=stderr)
+    
+    def error(msg, exit_code=1):
+        print('ERROR: {}'.format(msg), file=stderr)
+        exit(exit_code)
 
     parser = argparse.ArgumentParser(description="Create random SNVs, indels and CNVs for each subclone in a tumour sample.")
     parser.add_argument('-v', '--version', action='version', version='%(prog)s {0}'.format(version['__version__']))
@@ -43,16 +52,16 @@ def main():
     if "prefix" not in parameters:
         parameters['prefix'] = ''
     if "reference" not in parameters:
-        print('Error: No input genome fasta file provided.')
+        error('No input genome fasta file provided.')
     if os.path.exists(parameters['reference'] + '.fai'):
         parameters['fai']=(parameters['reference'] + '.fai')
     else:
-        print('Error: No fai index file for genome.')
+        error('No fai index file for genome.')
     if "directory" not in parameters:
-        print('Warning: No output directory given, using current directory.')
-        parameters['directory']='./'
+        warning('No output directory given, using current directory.')
+        parameters['directory']='.'
     if "chromosomes" not in parameters:
-        print('Warning: No chromosomes given, using "all".')
+        warning('No chromosomes given, using "all".')
         parameters['chromosomes']='all'
 
     #Functions for reading in data----------------------------------------------------------------------------------
@@ -87,7 +96,7 @@ def main():
         return(gen,reference)
 
     def readinvars(parameters):    #formats structure parameter into dictionary
-        with open(parameters['directory'] + '/' + parameters['prefix'] + 'variants_json.txt','r') as file:
+        with open(parameters['directory'] + '/' + parameters['prefix'] + 'variants.json','r') as file:
                 variants=json.load(file)
         return variants
 
@@ -101,18 +110,40 @@ def main():
                     for b in modchros[chro][hap].allblocks:
                         file.write(str(b)+'\n')
 
-    def writecnvfile(directory,prefix,clo,combcnvs):
+    def writecnvfile(directory,prefix,clo,combcnvs,combcnvsa,combcnvsb):
         with open(directory + '/' + prefix + clo + 'cnv.txt','w+') as file:
+            file.write('Chromosome\tStart\tEnd\tCopy Number\tA Allele\tB Allele\n')
             for chro in combcnvs:
                 for b in combcnvs[chro]:
-                    file.write(chro+'\t'+str(b.start)+'\t'+str(int(b.end))+'\t'+str(b.content)+'\n')
+                    for bb in combcnvsa[chro]:
+                        if bb.includes(b):
+                            acnv=bb.content
+                            break
+                    for bb in combcnvsb[chro]:
+                        if bb.includes(b):
+                            bcnv=bb.content
+                            break    
+                    file.write(chro+'\t'+str(b.start)+'\t'+str(int(b.end))+'\t'+str(b.content)+'\t'+str(acnv)+'\t'+str(bcnv)+'\n')
 
     def writevcffile(directory,prefix,clo,combvcfs):
         with open(directory + '/' + prefix + clo + '.vcf','w+') as file:
+            file.write('##fileformat=VCFv4.2\n')
+            file.write('##fileDate='+str(datetime.datetime.today().strftime('%Y%m%d'))+'\n')
+            file.write('##source=heterogenesis_varincorp-'+clo+'\n')
+            file.write('##reference=file:'+parameters['reference']+'\n')
+            file.write('##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">\n')
+            file.write('##FORMAT=<ID=AF,Number=A,Type=Float,Description="Alt allele frequency">\n')
+            file.write('##FORMAT=<ID=TC,Number=1,Type=Integer,Description="Total copies of alt allele">\n')
+            file.write('##FORMAT=<ID=HS,Number=1,Type=Integer,Description="Haplotypes">\n')
+            file.write('##FORMAT=<ID=HC,Number=.,Type=Integer,Description="Total copies of alt allele per haplotype">\n')
+            file.write('##FORMAT=<ID=CN,Number=2,Type=Integer,Description="Copy number at position">\n')
+            file.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'+clo+'\n')
             for chro in combvcfs:
                 for v in combvcfs[chro]:
-                    #write: chromosome, position, ref base, alternate base, frequency, total copies, copies per haplotype, copynumber at position
-                    file.write(chro+'\t'+str(combvcfs[chro][v][0])+'\t'+str(combvcfs[chro][v][1])+'\t'+str(combvcfs[chro][v][2])+'\t'+str(combvcfs[chro][v][3])+'\t'+str(combvcfs[chro][v][4])+'\t'+str(combvcfs[chro][v][5])+'\t'+str(combvcfs[chro][v][6])+'\n')
+                    #write: chromosome, position, ., ref base, alternate base, ., ., 1, FORMAT,frequency, total copies, haplotypes, copies per haplotype, copynumber at position
+                    haplotypes=','.join([h[0] for h in combvcfs[chro][v][5]])
+                    counts=','.join([str(h[1]) for h in combvcfs[chro][v][5]])                    
+                    file.write(chro+'\t'+str(combvcfs[chro][v][0])+'\t.\t'+str(combvcfs[chro][v][1])+'\t'+str(combvcfs[chro][v][2])+'\t.\t.\tNS=1\tAF:TC:HS:HC:CN\t'+str(combvcfs[chro][v][3])+':'+str(combvcfs[chro][v][4])+':'+haplotypes+':'+counts+':'+str(combvcfs[chro][v][6])+'\n')
 
     #Functions for generating output file data-------------------------------------------------------------------------------------
 
@@ -128,10 +159,11 @@ def main():
         return(block.start)
 
     class BLOCK(object):
-        def __init__(self, start, end, content):
+        def __init__(self, start, end, content,flag):
             self.start = start
             self.end = end
             self.content=content
+            self.flag=flag
         def includes(self, other):  #self completely includes other
             if (other.start >= self.start) and (other.end <= self.end): return True
             return False
@@ -140,7 +172,7 @@ def main():
             if (other.start > self.start) and (other.start <= self.end): return True
             elif (other.end >= self.start) and (other.end < self.end): return True
             return False
-        def __str__(self): return('BLOCK: {}-{}, {}'.format(self.start, self.end, self.content))
+        def __str__(self): return('BLOCK: {}-{}, {}, {}'.format(self.start, self.end, self.content, self.flag))
 
     class VCFVAR(object):
         def __init__(self, pos, ref, alt, branches,final,haplo):
@@ -172,13 +204,58 @@ def main():
             self.cnblocks=cnblocks
             self.vcfcounts=vcfcounts
         def getbasestring(self,ref):
-            basestring=[]
+            
+            def invert(forward):
+                reverse=[]
+                substitutions={}
+                substitutions['A']='T'
+                substitutions['T']='A'
+                substitutions['C']='G'
+                substitutions['G']='C'
+                substitutions['a']='t'
+                substitutions['t']='a'
+                substitutions['c']='g'
+                substitutions['g']='c' 
+                substitutions['N']='N'
+                substitutions['n']='n'
+                substitutions['R']='R'
+                substitutions['r']='r'
+                substitutions['M']='M'
+                substitutions['m']='m'
+                for i in forward[::-1]:
+                    reverse.append(substitutions[i])
+                return reverse
+                
+            basestring=[[]]
             for b in self.allblocks:
-                if b.content=='ref':
-                    basestring.extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
+                if b.flag=='s':
+                    basestring.append([])
+                    if b.content=='ref':
+                        basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
+                    else:
+                        basestring[-1].extend(b.content)
+                elif b.flag=='e':    
+                    if b.content=='ref':
+                        basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
+                    else:
+                        basestring[-1].extend(b.content)
+                    basestring[-2].extend(invert(basestring[-1]))
+                    basestring=basestring[:-1]
+                elif b.flag=='se':
+                    basestring.append([])
+                    if b.content=='ref':
+                        basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
+                    else:
+                        basestring[-1].extend(b.content)
+                    basestring[-2].extend(invert(basestring[-1]))
+                    basestring=basestring[:-1]    
                 else:
-                    basestring.extend(b.content)
-            return basestring
+                    if b.content=='ref':
+                        basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
+                    else:
+                        basestring[-1].extend(b.content)
+            return basestring[-1]
+            
         def __str__(self): return('MODCHRO from {}: {} allblocks, {} cnblocks'.format(self.chromosome, len(self.allblocks), len(self.cnblocks)))
         def updateblocks(self,var):
             if type(var.content)==str:  #if var contains a string (ie. snv or insertion indel) then just insert into allblocks
@@ -207,13 +284,20 @@ def main():
                                 copy.append(b)
                             elif copy!=[]: #if there are blocks recorded to copy
                                 if var.content!=0:
-                                    blocks[i:i]=copy*(var.content - 1)    #insert copied blocks times copy number -1
-                                else:   #remove blocks if var is a deletion
-                                    for bl in copy:
-                                        blocks.remove(bl)
+                                    for o in var.flag[::-1]: #for direction of each copy in reverse order
+                                        insert=deepcopy(copy)
+                                        if o==1:
+                                            insert[0].flag='s' #start flag
+                                            insert[-1].flag='e' #end flag
+                                            if len(insert)==1:
+                                                insert[0].flag='se'
+                                        blocks[i:i]=insert    #add in copied insert blocks
                                 break
                             else:
                                 pass
+                        #remove original blocks
+                        for bl in copy: 
+                            blocks.remove(bl)
             else:
                 print("ERROR")
             return self
@@ -243,66 +327,92 @@ def main():
     def splitblocks(blocks,spblock,newblock):
         #split block by an overlapping block and return the fragments of the split block
         if newblock.start > spblock.start and newblock.end < spblock.end:
-            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content)
-            midblock=BLOCK(newblock.start,newblock.end,spblock.content)
-            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content)
+            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,'')
+            midblock=BLOCK(newblock.start,newblock.end,spblock.content,'')
+            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,'')
+            if spblock.flag=='s' or spblock.flag=='se':leftblock.flag='s'
+            if spblock.flag=='e' or spblock.flag=='se':rightblock.flag='e'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,midblock,rightblock]
-            return blocks
         elif newblock.start > spblock.start:
-            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content)
-            rightblock=BLOCK(newblock.start,spblock.end,spblock.content)
+            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,'')
+            rightblock=BLOCK(newblock.start,spblock.end,spblock.content,'')
+            if spblock.flag=='s':leftblock.flag='s'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,rightblock]
-            return blocks
         elif newblock.end < spblock.end:
-            leftblock=BLOCK(spblock.start,newblock.end,spblock.content)
-            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content)
+            leftblock=BLOCK(spblock.start,newblock.end,spblock.content,'')
+            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,'')
+            if spblock.flag=='e':rightblock.flag='e'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,rightblock]
-            return blocks
+        return blocks
 
 
     def insertblock(blocks,spblock,newblock):
-        #insert a single base block (from snv or insertion indel) into an existing block and return all 3 resulting blocks (or 2 if the blocks start or end at the same position)
-        leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content)
-        rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content)
-        if leftblock.start==newblock.start: #if newblock starts on same base as existing, don't include leftblock
+        #insert a single base block (from snv or insertion indel) into an existing block and return all 3 resulting blocks (or 2 if the blocks start or end at the same position)        
+        leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,'')
+        rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,'')
+        if spblock.start==newblock.start: #if newblock starts on same base as existing, don't include leftblock
+            if spblock.flag=='s':newblock.flag='s'   
+            if spblock.flag=='se':
+                newblock.flag='s'
+                rightblock.flag='e'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([newblock,rightblock])
-        elif rightblock.end==newblock.end:  #if newblock ends on same base as existing, don't include rightblock
+        elif spblock.end==newblock.end:  #if newblock ends on same base as existing, don't include rightblock
+            if spblock.flag=='e':newblock.flag='e'
+            if spblock.flag=='se':
+                leftblock.flag='s'
+                newblock.flag='e'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([leftblock,newblock])
         else:
+            if spblock.flag=='s':leftblock.flag='s'
+            if spblock.flag=='e':rightblock.flag='e'
+            if spblock.flag=='se':
+                leftblock.flag='s'
+                rightblock.flag='e'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([leftblock,newblock,rightblock])
         return blocks
 
-    def combinecnvs(modchro,gen,chro):
+    def combinecnvs(modchro,gen):
         #put all cnv blocks into one list
         #start with empty block to fill in regions that have been deleted in all copies of a chromosome
-        allcnvs=[BLOCK(1,gen[chro],0)]
+        allcnvs=[BLOCK(1,gen[chro],0,'')]
+        acnvs=[BLOCK(1,gen[chro],0,'')]
+        bcnvs=[BLOCK(1,gen[chro],0,'')]
         for hap in modchro:
             allcnvs.extend(modchro[hap].cnblocks)
-        contin=False
+            if hap.startswith('A'):
+                acnvs.extend(modchro[hap].cnblocks)
+            else: 
+                bcnvs.extend(modchro[hap].cnblocks)
         #split cnv blocks so none overlap
-        while contin==False:
-            contin2=False
-            for cnv in allcnvs:
-                contin=False
-                if contin2==True:
-                    break
-                for c in allcnvs:
-                    if c.splitby(cnv):
-                        allcnvs=splitblocks(allcnvs,c,cnv)  #split c at cnv start and/or end position
-                        contin2=True   #causes break from first loop
-                        break   #start from beginning of cnvs as cnvs have now changed
-                    else:
-                        contin=True    #break the while loop only if run through all cnvs with no splits
-        #for each cnv block in allcnvs, if its position is not in recorded then add to combined and sum all cnv blocks with same position in allcnvs
+        phase=[allcnvs,acnvs,bcnvs]    
         combined=[]
-        recorded={}
-        for c in allcnvs:
-            if c.start not in recorded:
-                combined.append(BLOCK(c.start,c.end,sum(s.content for s in allcnvs if s.start==c.start)))
-            recorded[c.start]=''
-        #sort cnvs
-        combined=sorted(combined,key=getstart)
-        return combined
+        combineda=[]
+        combinedb=[]
+        outs=[combined,combineda,combinedb]
+        for p in range(3):        
+            contin=False
+            while contin==False:
+                contin2=False
+                for cnv in allcnvs:
+                    contin=False
+                    if contin2==True:
+                        break
+                    for c in phase[p]:
+                        if c.splitby(cnv):
+                            allcnvs=splitblocks(phase[p],c,cnv)  #split c at cnv start and/or end position
+                            contin2=True   #causes break from first loop
+                            break   #start from beginning of cnvs as cnvs have now changed
+                        else:
+                            contin=True    #break the while loop only if run through all cnvs with no splits
+            #for each cnv block in allcnvs, if its position is not in recorded then add to combined and sum all cnv blocks with same position in allcnvs
+            recorded={}
+            for c in phase[p]:
+                if c.start not in recorded:
+                    outs[p].append(BLOCK(c.start,c.end,sum(s.content for s in phase[p] if s.start==c.start),''))
+                recorded[c.start]=''
+            #sort cnvs
+            outs[p]=sorted(outs[p],key=getstart)
+        return combined,combineda,combinedb
 
     def combinevcfs(modchro,combcnvs):
         #put all vars in dictionaries referenced by position
@@ -370,7 +480,7 @@ def main():
         for chro in gen:
             modchros[chro]={}
             for hap in variants[clo][1][chro]:
-                modchros[chro][hap]=MODCHRO(chro,[BLOCK(1,gen[chro],'ref')],[BLOCK(1,gen[chro],1)],[]) #starting allblocks is a block of 1-end containing the refernce, and starting cnblocks is a block of 1-end with copy number of 1.
+                modchros[chro][hap]=MODCHRO(chro,[BLOCK(1,gen[chro],'ref','')],[BLOCK(1,gen[chro],1,'',)],[]) #starting allblocks is a block of 1-end containing the refernce, and starting cnblocks is a block of 1-end with copy number of 1.
         return modchros
 
 
@@ -396,26 +506,28 @@ def main():
     modchros=createmodchros(clo,gen,variants)
     hapvars=createhapvars(clo,gen,variants)
     combcnvs={}    #dictionary of combined copy numbers for each chromosome
+    combcnvsa={}
+    combcnvsb={}    
     combvcfs={}    #dictionary of combined vcfs for each chromosome
     for chro in hapvars:
         for hap in hapvars[chro]:
             for var in hapvars[chro][hap]:
                 if var[0]=='cnv':
-                    modchros[chro][hap].updateblocks(BLOCK(var[3],var[3]+var[4]-1,var[5]))
-                    modchros[chro][hap].updatevcf(BLOCK(var[3],var[3]+var[4]-1,var[5]))
+                    modchros[chro][hap].updateblocks(BLOCK(var[3],var[3]+var[4]-1,var[5],var[6]))
+                    modchros[chro][hap].updatevcf(BLOCK(var[3],var[3]+var[4]-1,var[5],''))
                 elif var[0]=='indel':
                     if var[7]=='i':
-                        modchros[chro][hap].updateblocks(BLOCK(var[3],var[3],var[6]))
+                        modchros[chro][hap].updateblocks(BLOCK(var[3],var[3],var[6],''))
                     else:
-                        modchros[chro][hap].updateblocks(BLOCK(var[3]+1,var[3]+1+var[4]-1,0))
+                        modchros[chro][hap].updateblocks(BLOCK(var[3]+1,var[3]+1+var[4]-1,0,''))
                     modchros[chro][hap].updatevcf(VCFVAR(var[3],var[5],var[6],[CNVBRANCH(var[3],var[3],'var')],'',hap)) #VCFVAR object starts with a single CNVBRANCH which contains the variant instead of a CNV
                 elif var[0]=='snv':
-                    modchros[chro][hap].updateblocks(BLOCK(var[3],var[3],var[5]))
+                    modchros[chro][hap].updateblocks(BLOCK(var[3],var[3],var[5],''))
                     modchros[chro][hap].updatevcf(VCFVAR(var[3],var[4],var[5],[CNVBRANCH(var[3],var[3],'var')],'',hap)) #VCFVAR object starts with a single CNVBRANCH which contains the variant instead of a CNV
                 elif var[0]=='aneu':
                     pass    #no need to do anything
             modchros[chro][hap].addupfinalvcfs()
-        combcnvs[chro]=combinecnvs(modchros[chro],gen,chro)
+        combcnvs[chro],combcnvsa[chro],combcnvsb[chro]=combinecnvs(modchros[chro],gen)
         combvcfs[chro]=combinevcfs(modchros[chro],combcnvs[chro])
 
     #write output files ------------------------------------------------------------------------------------------------------
@@ -423,7 +535,7 @@ def main():
 
     #write variant files
     #writeblocksfile(parameters['directory'],parameters['prefix'],clo,hapvars,modchros)   #This can be uncommented and used for testing if needed
-    writecnvfile(parameters['directory'],parameters['prefix'],clo,combcnvs)
+    writecnvfile(parameters['directory'],parameters['prefix'],clo,combcnvs,combcnvsa,combcnvsb)
     writevcffile(parameters['directory'],parameters['prefix'],clo,combvcfs)
 
     #Generate genome sequences and write to files

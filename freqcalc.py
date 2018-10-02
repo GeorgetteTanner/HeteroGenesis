@@ -15,6 +15,8 @@
 import argparse
 from signal import signal, SIGPIPE, SIG_DFL
 import os.path
+import datetime
+from sys import stderr, exit
 
 signal(SIGPIPE, SIG_DFL) # Handle broken pipes
 
@@ -31,15 +33,24 @@ def main():
     parser.add_argument('-n', '--name', dest='name', required=True, type=str, help='Output name of tumour sample.')
 
     args = parser.parse_args()
+    
+    def warning(msg):
+        print('WARNING: {}'.format(msg), file=stderr)
+    
+    def error(msg, exit_code=1):
+        print('ERROR: {}'.format(msg), file=stderr)
+        exit(exit_code)
 
     def getstart(block):
         return(block.start)
 
     class BLOCK(object):
-        def __init__(self, start, end, content):
+        def __init__(self, start, end, content, aallele, ballele):
             self.start = start
             self.end = end
             self.content=content
+            self.aallele=aallele
+            self.ballele=ballele
         def includes(self, other):  #self completely includes other
             if (other.start >= self.start) and (other.end <= self.end): return True
             return False
@@ -52,19 +63,19 @@ def main():
 
     def splitblocks(blocks,spblock,newblock):
         if newblock.start > spblock.start and newblock.end < spblock.end:
-            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content)
-            midblock=BLOCK(newblock.start,newblock.end,spblock.content)
-            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content)
+            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,spblock.aallele,spblock.ballele)
+            midblock=BLOCK(newblock.start,newblock.end,spblock.content,spblock.aallele,spblock.ballele)
+            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,spblock.aallele,spblock.ballele)
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,midblock,rightblock]
             return blocks
         elif newblock.start > spblock.start:
-            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content)
-            rightblock=BLOCK(newblock.start,spblock.end,spblock.content)
+            leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,spblock.aallele,spblock.ballele)
+            rightblock=BLOCK(newblock.start,spblock.end,spblock.content,spblock.aallele,spblock.ballele)
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,rightblock]
             return blocks
         elif newblock.end < spblock.end:
-            leftblock=BLOCK(spblock.start,newblock.end,spblock.content)
-            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content)
+            leftblock=BLOCK(spblock.start,newblock.end,spblock.content,spblock.aallele,spblock.ballele)
+            rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,spblock.aallele,spblock.ballele)
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,rightblock]
             return blocks
 
@@ -87,7 +98,7 @@ def main():
         recorded={}
         for c in cnvs:
             if c.start not in recorded:
-                combined.append(BLOCK(c.start,c.end,sum(s.content for s in cnvs if s.start==c.start)))
+                combined.append(BLOCK(c.start,c.end,sum(s.content for s in cnvs if s.start==c.start),sum(s.aallele for s in cnvs if s.start==c.start),sum(s.ballele for s in cnvs if s.start==c.start)))
             recorded[c.start]=''
         combined=sorted(combined,key=getstart)
         return combined
@@ -102,18 +113,22 @@ def main():
     #Check proportions add up to 1
     tot=sum([float(clones[x]) for x in clones])
     if round(tot,5) != 1:
-        print('Warning: Clone proportions add up to ' + str(tot) + ', not 1.')
-
-
+        warning('Clone proportions add up to ' + str(tot) + ', not 1.')
+    #check clones exist
+    for clo in clones:
+        if not (os.path.exists(args.directory +'/'+ args.prefix + clo + 'cnv.txt') + os.path.exists(args.directory +'/'+ args.prefix + clo + '.vcf')):
+            error('Variant profiles for '+clo+' do not exist.')
+            
     #Get all cnvs from cnv files
     allcnvs={}
     for clo in clones:
-        with open(args.directory + args.prefix + clo + 'cnv.txt','r') as file:
+        with open(args.directory +'/'+ args.prefix + clo + 'cnv.txt','r') as file:
+            file.readline()
             for line in file:
                 cnv=line.strip().split('\t')
                 if cnv[0] not in allcnvs:
                     allcnvs[cnv[0]]=[]
-                allcnvs[cnv[0]].append(BLOCK(int(cnv[1]),int(cnv[2]),float(cnv[3])*float(clones[clo])))
+                allcnvs[cnv[0]].append(BLOCK(int(cnv[1]),int(cnv[2]),float(cnv[3])*float(clones[clo]),float(cnv[5])*float(clones[clo]),float(cnv[5])*float(clones[clo])))
 
     #combine all cnvs
     comcnvs={}
@@ -121,37 +136,48 @@ def main():
         comcnvs[chromo]=combinecnvs(allcnvs[chromo])
 
     #write file 
-    with open(args.directory + args.prefix + args.name + 'cnv.txt','w') as file:
+    with open(args.directory + '/'+ args.prefix + args.name + 'cnv.txt','w') as file:
+        file.write('Chromosome\tStart\tEnd\tCopy Number\tA Allele\tB Allele\n')
         for chromo in comcnvs:
             for cnv in comcnvs[chromo]:
-                file.write(chromo+'\t'+str(cnv.start) +'\t'+str(cnv.end)+'\t'+str(cnv.content)+'\n')
+                file.write(chromo+'\t'+str(cnv.start) +'\t'+str(cnv.end)+'\t'+str(cnv.content)+'\t'+str(cnv.aallele)+'\t'+str(cnv.ballele)+'\n')
     
 
     #Get all vars from vcf files
     allvars=[]
     for clo in clones:
-        with open(args.directory + args.prefix + clo + '.vcf','r') as file:
+        with open(args.directory +'/'+ args.prefix + clo + '.vcf','r') as file:
             for line in file:
+                if line.startswith('#'): 
+                    if line.startswith('##reference=file:'):
+                        reference = line[17:].strip('\n')
+                    continue
                 var=line.split('\t')
-                allvars.append([var[0],str(var[1]),str(var[2]),str(var[3]),int(var[5]),float(clones[clo])]) #(var[5])-number of copies, (clones[clo])-clone proportion 
+                allvars.append([var[0],str(var[1]),var[3],var[4],int(var[9].split(':')[1]),int(var[9].split(':')[4]),float(clones[clo])])
                 
                 
     #combine all vars
     comvars={}
     for var in allvars:
         if var[0]+var[1] in comvars:
-            comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[5]))   #add to current value
+            comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[6]))   #add to current value
+            comvars[var[0]+var[1]][5]=comvars[var[0]+var[1]][5]+(float(var[5])*float(var[6]))   #add to current value
         else:
-            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[5]))]  #multiply number of copies by clone proportion
-    for var in comvars:
-        for cnv in comcnvs[comvars[var][0]]:
-            if int(comvars[var][1])>=cnv.start and int(comvars[var][1])<=cnv.end:
-                cn=cnv.content
-                break
-        comvars[var][4]=round(float(comvars[var][4])/float(cn),5)  #divide total number of copies by overall copy number to get overall VAF   
-    with open(args.directory + args.prefix + args.name + '.vcf','w+') as file:
-        for var in comvars:
-            file.write(comvars[var][0]+'\t'+str(comvars[var][1]) +'\t.\t.\t'+comvars[var][2]+'\t'+str(comvars[var][3])+'\t.\t.\t'+str(round(comvars[var][4],5))+'\n')
+            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),(float(var[5])*float(var[6]))]  #multiply number of copies by clone proportion
+        comvars[var[0]+var[1]].append(round(float(comvars[var[0]+var[1]][4])/float(comvars[var[0]+var[1]][5]),5))  #divide total number of copies by overall copy number to get overall VAF   
+    with open(args.directory +'/'+ args.prefix + args.name + '.vcf','w+') as file:
+        file.write('##fileformat=VCFv4.2'+'\n')
+        file.write('##fileDate='+str(datetime.datetime.today().strftime('%Y%m%d'))+'\n')
+        file.write('##source=heterogenesis_varincorp-'+clo+'\n')
+        file.write('##reference=file:'+reference+'\n')
+        file.write('##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">\n')
+        file.write('##FORMAT=<ID=AF,Number=A,Type=Float,Description="Alt allele frequency">\n')
+        file.write('##FORMAT=<ID=TC,Number=1,Type=Integer,Description="Total copies of alt allele">\n')
+        file.write('##FORMAT=<ID=CN,Number=2,Type=Integer,Description="Copy number at position">\n')
+        file.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'+args.name+'\n')
+        for v in comvars:
+            #write: chromosome, position, ., ref base, alternate base, ., ., 1, FORMAT,frequency, total copies, copynumber at position
+            file.write(comvars[v][0]+'\t'+str(comvars[v][1])+'\t.\t'+str(comvars[v][2])+'\t'+str(comvars[v][3])+'\t.\t.\tNS=1\tAF:TC:CN\t'+str(comvars[v][6])+':'+str(round(comvars[v][4]),5)+':'+str(round(comvars[v][5]),5)+'\n')
 
 # If run as main, run main():
 if __name__ == '__main__': main()

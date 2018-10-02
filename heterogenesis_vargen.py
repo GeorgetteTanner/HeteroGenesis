@@ -21,7 +21,7 @@ import random
 from signal import signal, SIGPIPE, SIG_DFL
 import os.path
 import json
-
+from sys import stderr, exit
 
 signal(SIGPIPE, SIG_DFL) # Handle broken pipes
 
@@ -30,6 +30,13 @@ version = {}
 with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'version.py')) as f: exec(f.read(), version)
 
 def main():
+
+    def warning(msg):
+        print('WARNING: {}'.format(msg), file=stderr)
+    
+    def error(msg, exit_code=1):
+        print('ERROR: {}'.format(msg), file=stderr)
+        exit(exit_code)
 
     parser = argparse.ArgumentParser(description="Create random SNVs, indels and CNVs for each subclone in a tumour sample.")
     parser.add_argument('-v', '--version', action='version', version='%(prog)s {0}'.format(version['__version__']))
@@ -43,93 +50,97 @@ def main():
     if "prefix" not in parameters:
         parameters['prefix'] = ''
     if "reference" not in parameters:
-        print('Error: No input genome fasta file provided.')
+        error('No input genome fasta file provided.')
+    if not os.path.exists(parameters['reference']):
+        error('Genome file not found.')           
     if os.path.exists(parameters['reference'] + '.fai'):
         parameters['fai']=(parameters['reference'] + '.fai')
     else:
-        print('Error: No fai index file for genome.')       
+        error('No fai index file for genome.')       
     if "directory" not in parameters:
-        print('Warning: No output directory given, using current directory.')
-        parameters['directory']='./'
+        warning('No output directory given, using current directory.')
+        parameters['directory']='.'
     if "structure" not in parameters:
-        print('Warning: No tumour structure given, using "clone1,0.2,germline,clone2,0.8,clone1"')
+        warning('No tumour structure given, using "clone1,0.2,germline,clone2,0.8,clone1"')
         parameters['structure']="clone1,0.2,germline,clone2,0.8,clone1"
     if "snvgermline" not in parameters:
         parameters['snvgermline']=0.00014
-        print('Warning: No germline SNV rate given, using '+str(parameters['snvgermline'])+'.')
+        warning('No germline SNV rate given, using '+str(parameters['snvgermline'])+'.')
     if "indgermline" not in parameters:
         parameters['indgermline']=0.000014
-        print('Warning: No germline InDel rate given, using '+str(parameters['indgermline'])+'.')
+        warning('No germline InDel rate given, using '+str(parameters['indgermline'])+'.')
     if "cnvrepgermline" not in parameters:
         parameters['cnvrepgermline']=160
-        print('Warning: No germline CNV number given, using '+str(parameters['cnvrepgermline'])+'.')
+        warning('No germline CNV number given, using '+str(parameters['cnvrepgermline'])+'.')
     if "cnvdelgermline" not in parameters:
         parameters['cnvdelgermline']=1000
-        print('Warning: No germline CNV number given, using '+str(parameters['cnvdelgermline'])+'.')
+        warning('No germline CNV number given, using '+str(parameters['cnvdelgermline'])+'.')
     if "aneuploid" not in parameters:
         parameters['aneuploid']=2
-        print('Warning: No somatic aneuploid events number given, using '+str(parameters['aneuploid'])+'.')
+        warning('No somatic aneuploid events number given, using '+str(parameters['aneuploid'])+'.')
     if "snvsomatic" not in parameters:
         parameters['snvsomatic']=0.00001
-        print('Warning: No somatic SNV rate given, using '+str(parameters['snvsomatic'])+'.')
+        warning('No somatic SNV rate given, using '+str(parameters['snvsomatic'])+'.')
     if "indsomatic" not in parameters:
         parameters['indsomatic']=0.000001
-        print('Warning: No somatic InDel rate given, using '+str(parameters['indsomatic'])+'.')
+        warning('No somatic InDel rate given, using '+str(parameters['indsomatic'])+'.')
     if "cnvrepsomatic" not in parameters:
         parameters['cnvrepsomatic']=250
-        print('Warning: No somatic replication CNV number given, using '+str(parameters['cnvrepsomatic'])+'.')
+        warning('No somatic replication CNV number given, using '+str(parameters['cnvrepsomatic'])+'.')
     if "cnvdelsomatic" not in parameters:
         parameters['cnvdelsomatic']=250
-        print('Warning: No somatic deletion CNV number given, using '+str(parameters['cnvdelsomatic'])+'.')
+        warning('No somatic deletion CNV number given, using '+str(parameters['cnvdelsomatic'])+'.')
     if "cnvgermlinemean" not in parameters:
         parameters['cnvgermlinemean']=-10
-        print('Warning: No lognormal mean for germline CNV lengths given, using '+str(parameters['cnvgermlinemean'])+'.')
+        warning('No lognormal mean for germline CNV lengths given, using '+str(parameters['cnvgermlinemean'])+'.')
     if "cnvgermlinevariance" not in parameters:
         parameters['cnvgermlinevariance']=3
-        print('Warning: No lognormal variance for germline CNV lengths given, using '+str(parameters['cnvgermlinevariance'])+'.')
+        warning('No lognormal variance for germline CNV lengths given, using '+str(parameters['cnvgermlinevariance'])+'.')
     if "cnvgermlinemultiply" not in parameters:
         parameters['cnvgermlinemultiply']=1000000
-        print('Warning: No multipication factor for germline CNV length given, using '+str(parameters['cnvgermlinemultiply'])+'.')
+        warning('No multipication factor for germline CNV length given, using '+str(parameters['cnvgermlinemultiply'])+'.')
     if "cnvsomaticmean" not in parameters:
         parameters['cnvsomaticmean']=-1
-        print('Warning: No lognormal mean for somatic CNV lengths given, using '+str(parameters['cnvsomaticmean'])+'.')
+        warning('No lognormal mean for somatic CNV lengths given, using '+str(parameters['cnvsomaticmean'])+'.')
     if "cnvsomaticvariance" not in parameters:
         parameters['cnvsomaticvariance']=3
-        print('Warning: No lognormal variance for somatic CNV lengths given, using '+str(parameters['cnvsomaticvariance'])+'.')
+        warning('No lognormal variance for somatic CNV lengths given, using '+str(parameters['cnvsomaticvariance'])+'.')
     if "cnvsomaticmultiply" not in parameters:
         parameters['cnvsomaticmultiply']=1000000
-        print('Warning: No multipication factor for somatic CNV length given, using '+str(parameters['cnvsomaticmultiply'])+'.')
+        warning('No multipication factor for somatic CNV length given, using '+str(parameters['cnvsomaticmultiply'])+'.')
     if "indmean" not in parameters:
         parameters['indmean']=-2
-        print('Warning: No mean for InDel lengths given, using '+str(parameters['indmean'])+'.')
+        warning('No mean for InDel lengths given, using '+str(parameters['indmean'])+'.')
     if "indvariance" not in parameters:
         parameters['indvariance']=2
-        print('Warning: No variance for InDel lengths given, using '+str(parameters['indvariance'])+'.')
+        warning('No variance for InDel lengths given, using '+str(parameters['indvariance'])+'.')
     if "indmultiply" not in parameters:
         parameters['indmultiply']=1
-        print('Warning: No multipication factor for InDel length given, using '+str(parameters['indmultiply'])+'.')
+        warning('No multipication factor for InDel length given, using '+str(parameters['indmultiply'])+'.')
     if "cnvcopiesmean" not in parameters:
         parameters['cnvcopiesmean']=1
-        print('Warning: No mean cnv copy number given, using '+str(parameters['cnvcopiesmean'])+'.')
+        warning('No mean cnv copy number given, using '+str(parameters['cnvcopiesmean'])+'.')
     if "cnvcopiesvariance" not in parameters:
         parameters['cnvcopiesvariance']=0.5
-        print('Warning: No variance for cnv copy number given, using '+str(parameters['cnvcopiesvariance'])+'.')
+        warning('No variance for cnv copy number given, using '+str(parameters['cnvcopiesvariance'])+'.')
     if "chromosomes" not in parameters:
         parameters['chromosomes']='all'
-        print('Warning: No chromosomes given, using '+str(parameters['chromosomes'])+'.')
+        warning('No chromosomes given, using '+str(parameters['chromosomes'])+'.')
     if "dbsnp" not in parameters:
-        print('Warning: No dnSNP file given, all variants will be randomly generated.')
+        warning('No dnSNP file given, all variants will be randomly generated.')
         parameters['dbsnp']='none'
         parameters['dbsnpindelproportion']=0
         parameters['dbsnpsnvproportion']=0
     else:
         if "dbsnpsnvproportion" not in parameters:
             parameters['dbsnpsnvproportion']=0.9
-            print('Warning: No proportion given for germline SNVs taken from dbSNP, using '+str(parameters['dbsnpsnvproportion'])+'.')
+            warning('No proportion given for germline SNVs taken from dbSNP, using '+str(parameters['dbsnpsnvproportion'])+'.')
         if "dbsnpindelproportion" not in parameters:
             parameters['dbsnpindelproportion']=0.5
-            print('Warning: No proportion given for germline InDels taken from dbSNP, using '+str(parameters['dbsnpindelproportion'])+'.')
-
+            warning('No proportion given for germline InDels taken from dbSNP, using '+str(parameters['dbsnpindelproportion'])+'.')
+    if "wgdprob" not in parameters:
+        parameters['wgdprob']=0
+        warning('No whole-genome event probability set. All aneuploid events will be single chromosome events.')
 
     #Functions for reading in data----------------------------------------------------------------------------------
 
@@ -143,9 +154,12 @@ def main():
         clones={}
         for i in range(1,int((len(structure)/3)+1)):
             clones[structure[i*3-3]]=[structure[i*3-2],structure[i*3-1]]
+        print('Inputted tumour clones: ')
+        for c in clones:
+            print('Clone: ',c,', evolutionary distance: ',clones[c][0],', parent clone: ',clones[c][1])
         return(clones)
 
-    def readindbsnp(dbsnp,gen,reference,snvgernum,indgernum):    #formats structure parameter into dictionary
+    def readindbsnp(dbsnp,gen,reference,snvgernum,indgernum):    
         dbsnvalt={}
         dbindelalt={}
         dbsnvmaf={}
@@ -182,12 +196,12 @@ def main():
             s=sum(p)
             p = [i/s for i in p] # normalize
  
-            dlist=numpy.random.choice(range(0,len(dbsnvalt[chro])),size=int(len(dbsnvalt[chro])/2), p=p, replace=False)    #sample half of total number - shouldn't need more and probabilities would get very distorted if sampling up to the total number         
+            dlist=numpy.random.choice(range(0,len(dbsnvalt[chro])),size=int(len(dbsnvalt[chro])), p=p, replace=False)    #sample total number (probabilities will get very distorted towards end of list, but shouldn't be needing all these anyway)        
             dbsnvs[chro]=[dbsnvalt[chro][d] for d in dlist]
             p=[float(i) for i in dbindelmaf[chro]]
             s=sum(p)
             p = [i/s for i in p] # normalize
-            dlist=numpy.random.choice(range(0,len(dbindelalt[chro])),size=int(len(dbindelalt[chro])/2), p=p, replace=False)            
+            dlist=numpy.random.choice(range(0,len(dbindelalt[chro])),size=int(len(dbindelalt[chro])), p=p, replace=False)            
             dbindels[chro]=[dbindelalt[chro][d] for d in dlist]
         return(dbsnvs,dbindels)
 
@@ -224,19 +238,19 @@ def main():
 
     def choosechromosome(gen,chrohaps):
         totlength=sum(gen[i]*len(chrohaps[i]) for i in gen.keys()) #get total length of all chromosome copies
-        if totlength==0:
-            print('All chromosomes have been deleted, no genome left!')
-            exit()
         probs=[float(gen[i]*len(chrohaps[i]))/totlength for i in list(gen.keys())] #get probability of each type of chromosome being choosen
         chro=numpy.random.choice(list(gen.keys()), p=probs)
         hap=numpy.random.choice(chrohaps[chro])
         return(chro,hap)
 
     def createaneu (gen,chrohaps):  #create information for an aneuploid variant
-        chro=numpy.random.choice(list(gen.keys())) #choose chromosome randomly with even probabilities
-        hap=numpy.random.choice(chrohaps[chro])
-        copy=int(numpy.random.choice([0,2,3]))   #choose copy number of chromosome
-        print(['aneu',chro,hap,copy])
+        x=0        
+        while x==0:        
+            chro=numpy.random.choice(list(gen.keys())) #choose chromosome randomly with even probabilities
+            hap=numpy.random.choice(chrohaps[chro])
+            copy=int(numpy.random.choice([0,2]))   #choose copy number of chromosome
+            if not (len(chrohaps[chro])==1 and copy==0):
+                x=1
         return ['aneu',chro,hap,copy]
 
     def createcnv(gen,chrohaps,vartype,somorger):   #create information for a cnv variant
@@ -253,9 +267,12 @@ def main():
             startbase=reference[chro][position-1]
             endbase=reference[chro][position-1+length-1]
         copy=0
+        invert=[]
         if vartype=='cnvrep':
             while copy==0 or copy==1: copy=int(numpy.random.lognormal(parameters['cnvcopiesmean'],parameters['cnvcopiesvariance'],1))
-        return ['cnv',chro,hap,position,length,copy]
+            for i in range(0,copy):
+                invert.append(int(numpy.random.choice([1,0])))
+        return ['cnv',chro,hap,position,length,copy,invert]
 
     def createsnv(gen,chrohaps,dbsnvs,pro):    #create information for an snv variant
         chro,hap=choosechromosome(gen,chrohaps)
@@ -333,11 +350,11 @@ def main():
             v=createcnv(gen,lists[1],vartype,somorger)
             keep=True
             for x in lists[3][v[1]+v[2]]:    #for each breakpoint pair in cnv dictionary
-                if v[3] < x[0] and  v[3]+v[4]-1 >= x[0] and v[3]+v[4]-1 < x[1]:   #if start position out but end position in. (-1 is added to length as the position base is included in the length)
+                if v[3] <= x[0] and v[3]+v[4]-1 >= x[0] and v[3]+v[4]-1 <= x[1]:   #if start position out or on, but end position in. (-1 is added to length as the position base is included in the length)
                     keep=False
                     c+=1
                     break
-                elif v[3]+v[4]-1 > x[1] and  v[3] <= x[1] and v[3] > x[0]:   #if end position out but start position in
+                elif v[3]+v[4]-1 >= x[1] and  v[3] <= x[1] and v[3] >= x[0]:   #if end position out but start position in
                     keep=False
                     c+=1
                     break
@@ -374,7 +391,7 @@ def main():
                     if (v[3] <= x[1] and  v[3]+1 >= x[0]) or (v[3]+1 +v[4]-1 <= x[1] and  v[3]+1+v[4]-1 >= x[0]):   #if previous base or end position in deleted region
                         keep=False
                 for x in lists[3][v[1]+v[2]]:    #for each breakpoint pair in cnv breakpoints dictionary
-                    if (v[3] <= x[0] and  v[3]+1 +v[4]-1  >= x[0]) or (v[3] <= x[1] and  v[3]+1 +v[4]-1 >= x[1]):   #if cnv start position or end position in deleted region
+                    if (v[3] <= x[0] and  v[3]+1 +v[4]-1  >= x[0]) or (v[3] <= x[1] and  v[3]+1 +v[4]-1 >= x[1]):   #if cnv start position or end position in or next to deleted region
                         keep=False
                 for x in range(v[3]+1,v[3]+1 +v[4]-1):  #if indel covers an existing snv
                     if x in lists[2][v[1]+v[2]]:
@@ -402,28 +419,40 @@ def main():
         lists[2][v[1]+v[2]].append(v[3])
         return(lists,dbsnvs)
 
-    def getaneu(gen,lists):
-        v=createaneu(gen,lists[1])
-        lists[0].append(v)
-        #update chromosome haplotypes
-        newhaps=[]
-        for i in range(1,v[3]+1):
-            newhaps.append(v[2]+'-'+str(i))
-        for hap in newhaps:
-            lists[1][v[1]].append(hap)   #add haplotype for each copy number - eg. A,B becomes A,B,A1,A2,A3
-        lists[1][v[1]].remove(v[2])       #remove original
-        #update lists to replicate for each new haplotype
-        for l in [2,3,4]:
-            for chrohap in list(lists[l].keys()):
-                if chrohap==v[1]+v[2]:
-                    for hap in newhaps:
-                        lists[l][v[1]+hap]=lists[l][v[1]+v[2]]
-        #add empty keys for each haplotype
-            for hap in lists[1][v[1]]:
-                if v[1]+hap not in lists[l]:
-                    lists[l][v[1]+hap]={}
-        if v[3]==0:
-            lists[4][v[1]+v[2]]=[1,gen[v[1]]]
+    def getaneu(gen,lists,wgdprob):
+        
+        def updatechros(chro,hap,copies,lists):
+            #update chromosome haplotypes
+            newhaps=[]
+            for i in range(1,copies+1):
+                newhaps.append(hap+'-'+str(i))
+            for newhap in newhaps:
+                lists[1][chro].append(newhap)   #add haplotype for each copy number - eg. A,B becomes A,B,A1,A2,A3
+            lists[1][chro].remove(hap)       #remove original
+            
+            #update lists to replicate for each new haplotype
+            for l in [2,3,4]:
+                for newhap in newhaps:
+                    lists[l][chro+newhap]=lists[l][chro+hap]
+            if copies==0:
+                lists[4][chro+hap]=[1,gen[chro]]
+            return lists
+        
+        
+        wgd=numpy.random.choice([True,False],p=[wgdprob,1-wgdprob])
+        
+        if wgd==True:
+            v=['aneu','all','all',2]
+            lists[0].append(v)
+            for chro in lists[1]:
+                 for hap in lists[1][chro][:]:
+                    lists=updatechros(chro,hap,2,lists)
+        else:
+            v=createaneu(gen,lists[1])
+            lists[0].append(v)
+            lists=updatechros(v[1],v[2],v[3],lists)
+        
+        print('Aneuploid event occured: ',v)
         return(lists)
 
     def chooseclone(clones,totdis):
@@ -439,6 +468,10 @@ def main():
 
     def writevariantfile(directory,prefix,lists,clo):
         with open(directory + '/' + prefix + clo+'variants.txt','w+') as file:
+            file.write('#SNV\tChromosome\tChromosome copy\tPosition\tReference allele\tAlternate allele\tOrder\n')
+            file.write('#INDEL\tChromosome\tChromosome Copy\tPosition\tLength\tReference Allele\tAlternate Allele\tType:i-insertion,d-deletion\tOrder\n')
+            file.write('#CNV\tChromosome\tChromosome copy\tPosition\tLength\tCopy number\tDirection of each copy:0-forward,1-reverse\tOrder\n')
+            file.write('#ANEU\tChromosome\tChromosome Copy\tCopy number\tOrder\n')
             i=0
             for v in lists[0]:
                 i+=1
@@ -448,6 +481,7 @@ def main():
 
     def writeaneuploidfile(directory,prefix,lists,clo,germorsom,gen):
         with open(directory + '/' + prefix + clo + 'aneuploid.txt','w+') as file:
+            file.write('Aneuploid events:' + '\n')
             for v in lists[0]:
                 if v[0]=='aneu':
                     file.write(v[1]+'\t'+v[2]+'\t'+str(v[3])+'\n')
@@ -466,7 +500,6 @@ def main():
     else:
         chromosomes=[parameters['chromosomes']]
     gen,reference=readinfai(chromosomes,parameters['fai'],parameters['reference'])  #get dictionaries of genome lengths and sequences
-    print('Tumour clones : ',clones)
 
 
     #Get total number of each variant type for somatic and germline genomes
@@ -499,7 +532,6 @@ def main():
 
     #get starting chromosome haplotypes
     for chro in gen:
-        print(chro)
         germlinevariants[1][chro]=['A','B']
     #add empty keys for each haplotype in each list
         for hap in germlinevariants[1][chro]:
@@ -584,7 +616,7 @@ def main():
                     elif vartype == 'snv':
                         variants[clo],dontneed=getsnv(gen,variants[clo],'','')
                     elif vartype == 'aneu':
-                        variants[clo]=getaneu(gen,variants[clo])
+                        variants[clo]=getaneu(gen,variants[clo],float(parameters['wgdprob']))
 
                 del unsortedclones[clo]
                 sortedclones[clo]=''
@@ -599,7 +631,7 @@ def main():
         writevariantfile(parameters['directory'],parameters['prefix'],variants[clo],clo)
         writeaneuploidfile(parameters['directory'],parameters['prefix'],variants[clo],clo,'somatic',gen)
 
-    with open(parameters['directory'] + '/' + parameters['prefix'] + 'variants_json.txt','w+') as file:
+    with open(parameters['directory'] + '/' + parameters['prefix'] + 'variants.json','w+') as file:
         json.dump(variants, file, indent=1)
 
 
