@@ -177,7 +177,7 @@ def main():
         file.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'+args.name+'\n')
         for v in comvars:
             #write: chromosome, position, ., ref base, alternate base, ., ., 1, FORMAT,frequency, total copies, copynumber at position
-            file.write(comvars[v][0]+'\t'+str(comvars[v][1])+'\t.\t'+str(comvars[v][2])+'\t'+str(comvars[v][3])+'\t.\t.\tNS=1\tAF:TC:CN\t'+str(comvars[v][6])+':'+str(round(comvars[v][4]),5)+':'+str(round(comvars[v][5]),5)+'\n')
+            file.write(comvars[v][0]+'\t'+str(comvars[v][1])+'\t.\t'+str(comvars[v][2])+'\t'+str(comvars[v][3])+'\t.\t.\tNS=1\tAF:TC:CN\t'+str(comvars[v][6])+':'+str(round(comvars[v][4],5))+':'+str(round(comvars[v][5],5))+'\n')
 
 # If run as main, run main():
 if __name__ == '__main__': main()

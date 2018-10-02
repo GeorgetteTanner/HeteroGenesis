@@ -212,10 +212,10 @@ cd ../test1
 heterogenesis_vargen -j ../HeteroGenesis/example.json
 
 #Run heterogenesis_varincorp on each clone and germline
-for clone in clone1 clone2 germline ; do ../HeteroGenesis/heterogenesis_varincorp -j ../HeteroGenesis/example.json -c ${clone} ; done
+for clone in clone1 clone2 germline ; do heterogenesis_varincorp -j ../HeteroGenesis/example.json -c ${clone} ; done
 
 #Run freqcalc to create bulk sample variant profiles
-../HeteroGenesis/freqcalc -c ../HeteroGenesis/example_clones.txt -d . -p test1
+freqcalc -c ../HeteroGenesis/example_clones.txt -d . -p test1 -n 
 
 ```
 

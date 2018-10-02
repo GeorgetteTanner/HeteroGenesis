@@ -196,12 +196,12 @@ def main():
             s=sum(p)
             p = [i/s for i in p] # normalize
  
-            dlist=numpy.random.choice(range(0,len(dbsnvalt[chro])),size=int(len(dbsnvalt[chro])), p=p, replace=False)    #sample total number (probabilities will get very distorted towards end of list, but shouldn't be needing all these anyway)        
+            dlist=numpy.random.choice(range(0,len(dbsnvalt[chro])),size=int(len(dbsnvalt[chro])*0.9), p=p, replace=False)    #sample total number * 0.9 as some values have a p of 0 - shouldnt need the majority anyway      
             dbsnvs[chro]=[dbsnvalt[chro][d] for d in dlist]
             p=[float(i) for i in dbindelmaf[chro]]
             s=sum(p)
             p = [i/s for i in p] # normalize
-            dlist=numpy.random.choice(range(0,len(dbindelalt[chro])),size=int(len(dbindelalt[chro])), p=p, replace=False)            
+            dlist=numpy.random.choice(range(0,len(dbindelalt[chro])),size=int(len(dbindelalt[chro])*0.9), p=p, replace=False)            
             dbindels[chro]=[dbindelalt[chro][d] for d in dlist]
         return(dbsnvs,dbindels)
 

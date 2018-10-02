@@ -1,3 +1,3 @@
-germline	20
-clone1	65
-clone2	15
+germline	0.2
+clone1	0.65
+clone2	0.15
