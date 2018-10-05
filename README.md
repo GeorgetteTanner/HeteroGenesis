@@ -116,7 +116,7 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |cnvrepgermline|Number of germline replication CNVs.|160|
 |cnvdelgermline|Number of germline deletion CNVs.|1000|
 |aneuploid|Number of somatic aneuploid events. i.e. replication or deletion of chromosomes. These can either be whole genome duplication or individual chromosome duplication or deletion. Aneuploid events are prevented from deleting all copies of a chromosome. Germline aneuploid events are not available.|2|
-|wgdprob|Probability that each aneuploid event is a whole genome duplication.|0.0|
+|wgdprob|Probability that each aneuploid event is a whole-genome duplication.|0.0|
 |snvsomatic|Rate of somatic SNVs per base.|0.00001|
 |indsomatic|Rate of somatic indels per base.|0.000001|
 |cnvrepsomatic|Number of somatic replication CNVs.|250|
@@ -170,94 +170,155 @@ File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
 2. **_prefixcloneX_variants.txt:** This file lists every variant that occured in the clone. 
 
 ### heterogenesis_varincorp
-1. **_prefixcloneX_cnv.txt:** This records the copy number status along the genome, allong with phased major/minor alleles.(Positions are 1 based.)
+1. **{prefix}{cloneX}cnv.txt:** This records the copy number status along the genome, allong with phased major/minor alleles.(Positions are 1 based.)
 
-2. **_prefixcloneX_.vcf:** This records the position and variant allele frequency (VAF) for each SNV/InDel, allong with the number of occurences on each copy of a chromosome and the overall copy number at that position.
+2. **{prefix}{cloneX}.vcf:** This records the position and variant allele frequency (VAF) for each SNV/InDel, allong with the number of occurences on each copy of a chromosome and the overall copy number at that position.
 
-3. **_prefixcloneXchrXX_.fasta:** The genome sequence in FASTA format. (One file for each copy of each chromosome.)
+3. **{prefix}{cloneX}{chrXX}.fasta:** The genome sequence in FASTA format. (One file for each copy of each chromosome.)
 
 ### FreqCalc
-1. **_prefixsample_cnv.txt:** This records the combined copy number status along the genome, allong with phased major/minor alleles, for the bulk tumour sample.(Positions are 1 based.)
+1. **{prefix}{sample}cnv.txt:** This records the combined copy number status along the genome, allong with phased major/minor alleles, for the bulk tumour sample.(Positions are 1 based.)
  
-2. **_prefixsample_.vcf:** This records the combined position and variant allele frequency (VAF) for each SNV/InDel, allong with the number of occurences on each copy of a chromosome and the overall copy number at that position, for a bulk tumour sample.
+2. **{prefix}{sample}.vcf:** This records the combined position and variant allele frequency (VAF) for each SNV/InDel, allong with the number of occurences on each copy of a chromosome and the overall copy number at that position, for a bulk tumour sample.
 
 
-##Worked Example
+##Example
+
+This example demonstrates how to run the entire HeteroGenesis process on default parameters. This limits the simulation to use only chromosomes 21 and 22 in order to reduce run time to a few minutes.
 
 ```bash
-#Install
+#Install:
 git clone https://github.com/GeorgetteTanner/HeteroGenesis.git
 cd HeteroGenesis/
 python setup.py install
 
-#If wanting germline variants from dbSNP: 
-#Download a pre-made file that contains 10,000,000 subsampled variants (approximately 1/8th of the total variants.):
+#EITHER:
+
+#1. If wanting germline variants from dbSNP, download a pre-made 
+#file that contains 10,000,000 subsampled variants (approximately 
+#1/8th of the total variants.):
 wget https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz
 gunzip dsdata.txt.gz
 
-#If not wanting to include dbSNP variants:
-#Remove the '"dbsnp":"./dsdata.txt",' line from example.json
+#OR:
+
+#2. If not wanting to include dbSNP variants, remove the 
+#'"dbsnp":"./dsdata.txt",' line from example.json
 awk '!/dsdata/' example.json > temp ; mv temp example.json
 
-#Download reference genome (or copy from locally saved reference genome to save time)
+#Download reference genome (or copy from locally saved reference genome to save time):
 wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.fasta.gz
 wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.fasta.fai
 gunzip Homo_sapiens_assembly38.fasta.gz
 
-#make test directory
+#make test directory:
 mkdir ../test1
 cd ../test1
 
-#Run heterogenesis_vargen
+#Run heterogenesis_vargen: 
 heterogenesis_vargen -j ../HeteroGenesis/example.json
 
-#Run heterogenesis_varincorp on each clone and germline
+#Run heterogenesis_varincorp on each clone and germline: ~5min
 for clone in clone1 clone2 germline ; do heterogenesis_varincorp -j ../HeteroGenesis/example.json -c ${clone} ; done
 
-#Run freqcalc to create bulk sample variant profiles
-freqcalc -c ../HeteroGenesis/example_clones.txt -d . -p test1 -n 
+#Run freqcalc to create bulk sample variant profiles: 
+freqcalc -c ../HeteroGenesis/example_clones.txt -d . -p test1 -n sample1
 
 ```
 
-If wanting to perform _in silico_ whole-exome sequencing of the created tumour then continue with the following (see https://github.com/GeorgetteTanner/w-Wessim for further details):
+If you are wanting to perform _in silico_ whole-exome sequencing of the created tumour then continue with the following. 
 
+This example demonstrates how to use w-Wessim with the real reads probe set to create the most realistic sequencing dataset. However, this is a very time and memory consuming process and not feasible without access to a high performance computing system. Therefore the option of using a subsampled probe set (with 1/1000th of the probes) is available if the user wishes to run the programs on a standard computer for testing. The resulting sequencing data set from this will look very patchy and is not intended for use. Instructions for both options are included below.
+
+(See https://github.com/GeorgetteTanner/w-Wessim for further details.)
 
 ```bash
-#Download programs:
+#Download programs - (you may get a few warnings during pblat installation that can be ignored):
 cd ..
 git clone https://github.com/GeorgetteTanner/w-Wessim.git
 git clone https://github.com/icebert/pblat.git
+cd pblat
+make
+cd ..
 #(need to find the correct binary file for your operating system:)
 wget http://hgdownload.soe.ucsc.edu/admin/exe/macOSX.x86_64/faToTwoBit
 chmod a+x ./fatotwobit
 
-#Download probe sequences and convert to fasta:
+#EITHER:
+
+#1. Download full set of probe sequences and convert from fastq to fasta:
 cd w-Wessim
 wget ftp://ftp.sra.ebi.ac.uk/vol1/ERA157/ERA1574375/fastq/real_wes_reads_probes.fastq.gz
 gunzip real_wes_reads_probes.fastq.gz
 paste - - - - < real_wes_reads_probes.fastq | cut -f 1,2 | sed 's/^@/>/' | tr "\t" "\n" > real_wes_reads_probes.fa
 
-#Convert each chromosome fasta to 2bit:
-cd ../test1
-for f in prefix*.fasta ; do faToTwoBit $f > ${f}.2bit ; done
+#OR
 
-#Blat:
-for f in prefix*.fasta.2bit ; do pblat $f real_wes_reads_probes.fa blatoutput_$(basename $f .fasta.2bit).psl -minScore=95 -minIdentity=95 ; done
-#Combine .psl files
-#Save the header (once will do but easier to automate the code:
-head -n 5 $(ls prefix*.fasta | head -1 ) > pslheader.txt
+#2.Download subsampled probe sequences:
+cd w-Wessim 
+wget https://github.com/GeorgetteTanner/data/raw/master/real_wes_reads_probes_subsampled.fa.gz
+gunzip real_wes_reads_probes_subsampled.fa.gz
+mv real_wes_reads_probes_subsampled.fa real_wes_reads_probes.fa
+
+#Combine fasta files. If using a whole genome run, these need to be
+#grouped into files of no more than around 2GB to avoid errors with #pblat - we recommend grouping into 4. When using only a couple of 
+#chromosomes, all copies can be grouped together but for 
+#demostration purposes we group into 2 files here. Alternatively, 
+#code for grouping files into 4 is given below. (More than 4 files 
+#will probably be needed on whole genome runs with whole-genome 
+#duplication events.) Each run of pblat takes a similar length of 
+#time regardless of genome length so its best to group into as few 
+#files as possible.: ~2sec
+
+#EITHER:
+
+#1.
+cd ../test1
+for clo in clone1 clone2 germline ; do cat test1${clo}chr*A*fasta > test1${clo}_1.fasta ; done
+for clo in clone1 clone2 germline ; do cat test1${clo}chr*B*fasta > test1${clo}_2.fasta ; done
+
+#OR:
+
+#2.
+cd ../test1
+for clo in clone1 clone2 germline ; do cat test1${clo}chr1*A*fasta > test1${clo}_1.fasta ; done
+for clo in clone1 clone2 germline ; do cat test1${clo}chr1*B*fasta > test1${clo}_2.fasta ; done
+for clo in clone1 clone2 germline ; do cat test1${clo}chr[^1]*A*fasta > test1${clo}_3.fasta ; done
+for clo in clone1 clone2 germline ; do cat test1${clo}chr[^1]*B*fasta > test1${clo}_4.fasta ; done
+
+#Convert each chromosome fasta to 2bit: 
+for f in test1*_*.fasta ; do faToTwoBit $f ${f}.2bit ; done
+
+#pblat: ~1h for subsampled probes
+for f in test1*.fasta.2bit ; do ../pblat/pblat $f ../w-Wessim/real_wes_reads_probes.fa $(basename $f .fasta.2bit).psl -minScore=95 -minIdentity=95 -threads=8; done
+
+#Combine .psl files:
+#Save the header:
+head -n 5 $(ls *.psl | head -1 ) > pslheader.txt
 #Remove the headers:
 for f in *.psl ; do tail -n+6 $f > noheader_$f ; done 
 #Combine noheader*.psl files and sort combined file on column 10: 
-for clone in clone1 clone2 germline ; do cat noheader_${clone}*.psl | sort -k 10 -n > sorted_combined_noheader_${clone}.psl ; done
+for clone in clone1 clone2 germline ; do cat noheader_test1${clone}*.psl | sort -k 10 -n > sorted_combined_noheader_test1${clone}.psl ; done
 #Add the header:
-cat pslheader.txt sorted_combined_noheader_${clone}.psl > ${clone}.psl
+for clone in clone1 clone2 germline ; do cat pslheader.txt sorted_combined_noheader_test1${clone}.psl > ${clone}.psl ; done
 
-#Combine fasta files
-for clone in clone1 clone2 germline ; do cat prefix${clone}*.fasta > prefix${clone}.fasta ; done
+#Combine fasta files into full genomes
+for clone in clone1 clone2 germline ; do cat test1${clone}*.fasta > test1${clone}.fasta ; done
 
 #w-Wessim:
 cd ../w-Wessim
-for clone in clone1 clone2 germline ; do python2 w-wessim2.py -R ../test1/prefix${clone}.fasta -P real_wes_reads_probes.fa -B ${clone}.psl -n 100000 -l d -M lib/hs2000p.gzip -pz -o ../test1/w-wessimoutput -t 1 -v -m 20 -f 170 -d 35
+for clo in clone1 clone2 germline ; do python2 w-wessim.py -R ../test1/test1${clo}.fasta -P real_wes_reads_probes.fa -B ${clo}.psl -n 100000 -l d -M lib/hs2000p.gzip -pz -o ../test1/w-wessimoutput_{clo} -t 1 -v -m 20 -f 170 -d 35 ; done
 
+#Align reads using own pipelines. (Cleaning reads is not recomended 
+#if using the error model provided with w-Wessim as that was 
+#trained on a pre-cleaned dataset to improve alignment accuracy of 
+#the training set.)
+
+#Subsample BAM files in proportions listed in the clones file:
+samtools view -b -h -s 0.15 -o germline_0.20.bam germline.bam 
+samtools view -b -h -s 0.65 -o clone2_0.65.bam clone2.bam 
+samtools view -b -h -s 0.15 -o clone1_0.15.bam clone1.bam 
+
+#Combine subsampled bam files to create bulk data.
+samtools merge -c -p example_bulk.bam germline_0.20.bam clone2_0.65.bam clone1_0.15.bam
 ```
