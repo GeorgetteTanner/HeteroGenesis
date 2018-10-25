@@ -153,7 +153,7 @@ def main():
                         reference = line[17:].strip('\n')
                     continue
                 var=line.split('\t')
-                allvars.append([var[0],str(var[1]),var[3],var[4],int(var[9].split(':')[1]),int(var[9].split(':')[4]),float(clones[clo])])
+                allvars.append([var[0],str(var[1]),var[3],var[4],int(var[9].split(':')[1]),int(var[9].split(':')[4]),float(clones[clo]),int(var[9].split(':')[2])])
                 
                 
     #combine all vars
@@ -163,8 +163,7 @@ def main():
             comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[6]))   #add to current value
             comvars[var[0]+var[1]][5]=comvars[var[0]+var[1]][5]+(float(var[5])*float(var[6]))   #add to current value
         else:
-            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),(float(var[5])*float(var[6]))]  #multiply number of copies by clone proportion
-        comvars[var[0]+var[1]].append(round(float(comvars[var[0]+var[1]][4])/float(comvars[var[0]+var[1]][5]),5))  #divide total number of copies by overall copy number to get overall VAF   
+            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),(float(var[5])*float(var[6])),var[7][0]]  #multiply number of copies by clone proportion
     with open(args.directory +'/'+ args.prefix + args.name + '.vcf','w+') as file:
         file.write('##fileformat=VCFv4.2'+'\n')
         file.write('##fileDate='+str(datetime.datetime.today().strftime('%Y%m%d'))+'\n')
@@ -173,11 +172,12 @@ def main():
         file.write('##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">\n')
         file.write('##FORMAT=<ID=AF,Number=A,Type=Float,Description="Alt allele frequency">\n')
         file.write('##FORMAT=<ID=TC,Number=1,Type=Integer,Description="Total copies of alt allele">\n')
+        file.write('##FORMAT=<ID=PH,Number=1,Type=Integer,Description="Phase">\n')
         file.write('##FORMAT=<ID=CN,Number=2,Type=Integer,Description="Copy number at position">\n')
         file.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'+args.name+'\n')
         for v in comvars:
             #write: chromosome, position, ., ref base, alternate base, ., ., 1, FORMAT,frequency, total copies, copynumber at position
-            file.write(comvars[v][0]+'\t'+str(comvars[v][1])+'\t.\t'+str(comvars[v][2])+'\t'+str(comvars[v][3])+'\t.\t.\tNS=1\tAF:TC:CN\t'+str(comvars[v][6])+':'+str(round(comvars[v][4],5))+':'+str(round(comvars[v][5],5))+'\n')
+            file.write(comvars[v][0]+'\t'+str(comvars[v][1])+'\t.\t'+str(comvars[v][2])+'\t'+str(comvars[v][3])+'\t.\t.\tNS=1\tAF:TC:CN\t'+str(round(float(comvars[v][4])/float(comvars[v][5]),5))+':'+str(round(comvars[v][4],5))+':'+str(round(comvars[v][5],5))+':'+str(comvars[v][6])+'\n')
 
 # If run as main, run main():
 if __name__ == '__main__': main()

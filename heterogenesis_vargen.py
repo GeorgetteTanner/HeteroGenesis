@@ -316,10 +316,10 @@ def main():
             alt=l[2]
             dbindels[chro]=dbindels[chro][1:]
             if len(ref) != 1:
-                length=len(ref)
+                length=len(ref)-1
                 iod='d'
             else:
-                length=len(alt)
+                length=len(alt)-1
                 iod='i'
         else:
             length=101
