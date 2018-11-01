@@ -10,11 +10,11 @@ For more information, see "Simulation of Heterogeneous Tumour Genomes with Heter
 Please cite this when using HeteroGnesis.
 
 ## Requirements
-Python3 is required to run both HeteroGenesis and FreqCalc. numpy is also required for running HeteroGenesis. 
-Both tools have been tested with Python 3.5.2 and numpy 1.12.0 and 1.12.1.
+Python3 and numpy are required to run HeteroGenesis. Python 3.5.2 and numpy 1.12.0 and 1.12.1 have been tested succesfully with it.
 
 **heterogenesis\_vargen** takes 2hrs and 4GB RAM on a single thread to run under default parameters, which includes a germline and 2 somatic clones. 
 **heterogenesis\_varincorp** takes 1hr and 7GB RAM on a single thread to run ’clone1’ of this output.
+
 
 ## Installation
 
@@ -32,7 +32,7 @@ The first, **heterogenesis\_vargen**, takes: i) a FASTA genome sequence, ii) a .
 
 The second part, **heterogenesis\_varincorp** is then run, once for each clone, and incorporates the list of variants for a clone into a reference genome. It outputs: i) the FASTA genome sequence (one file for each copy of a chromosome), ii) a VCF file of SNV and InDel positions and frequencies, and iii) a file containing the copy numbers along the genome.
 
-The last part, **FreqCalc**, can then be run to combine outputs from clones to generate bulk tumour outputs. It takes a file containing the proportions of each clone in a tumour, along with the outputs from heterogenesis\_varincorp, and outputs equivalent files for the bulk tumour.
+The last part, **freqcalc**, can then be run to combine outputs from clones to generate bulk tumour outputs. It takes a file containing the proportions of each clone in a tumour, along with the outputs from heterogenesis\_varincorp, and outputs equivalent files for the bulk tumour.
 
 
 ## Implementation
@@ -59,7 +59,7 @@ heterogenesis\_varincorp -j example.json -c clone
 
 -c/--clone : Name of clone to generate genomes for.
 
-### FreqCalc
+### freqcalc
 
 ```
 freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix} -n {name}
@@ -156,7 +156,7 @@ The same JSON file as used for heterogenesis\_vargen can be given but only the f
 |directory|Directory containing the JSON variants file output from heterogenesis\_vargen and where output files will be written to.|"./"|
 |chromosomes|List of chromosomes included in the model. Alternatively, "all" can be given, in which case chromosomes 1-22 will be used. This only works for genomes for which chromosomes are labelled 'chr1','chr2'... (Also note that X and Y are not included with "all")|”all”|
 
-### FreqCalc
+### freqcalc
 
 1. **Clones File:**
 File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
@@ -176,7 +176,7 @@ File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
 
 3. **{prefix}{cloneX}{chrXX}.fasta:** The genome sequence in FASTA format. (One file for each copy of each chromosome.)
 
-### FreqCalc
+### freqcalc
 1. **{prefix}{sample}cnv.txt:** This records the combined copy number status along the genome, allong with phased major/minor alleles, for the bulk tumour sample.(Positions are 1 based.)
  
 2. **{prefix}{sample}.vcf:** This records the combined position and variant allele frequency (VAF) for each SNV/InDel, allong with the phasing of each variant (ie. if the variant occured on an A or B copy of a chromosome) and the overall copy number at that position, for a bulk tumour sample.
