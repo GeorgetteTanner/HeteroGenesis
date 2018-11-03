@@ -87,7 +87,7 @@ A file of known germline SNVs and InDels, created using dbsnpextractor (https://
 
 	Users can either download a pre-made subsampled version containing 10,000,000 variants (239271 deletions, 112984 insertions, 9647745 SNVs) (~1/8th of the total variants) from https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz, or recreate their own entire file. (Includes up to several days of downloading flat files!):
 	
-    ```bash
+```bash
 for chromosome in $(seq 1 22) X Y ; \
 do wget ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/ASN1_flat/ds_flat_ch${chromosome}.flat.gz ; \
 gunzip ds_flat_ch${chromosome}.flat.gz ; done
@@ -97,7 +97,7 @@ git clone https://github.com/GeorgetteTanner/dbsnpextractor.git
 cd dbsnpextractor
 dbsnpextractor.py -i ../HeteroGenesis/ds_flat_combined.flat -o ../HeteroGenesisdsdata.txt
 cd ../HeteroGenesis
-    ```
+```
 
 4. **Parameters File:**
 A JSON file containing run parameters and locations of other inputs. Any parameter that is missing from the file will be set at its default value:
@@ -227,11 +227,15 @@ freqcalc -c ../HeteroGenesis/example_clones.txt -d . -p test1 -n sample1
 
 ```
 
-If you are wanting to perform _in silico_ whole-exome sequencing of the created tumour then continue with the following. 
-
-This example demonstrates how to use w-Wessim with the real reads probe set to create the most realistic sequencing dataset. However, this is a very time and memory consuming process and not feasible without access to a high performance computing system. Therefore the option of using a subsampled probe set (with 1/1000th of the probes) is available if the user wishes to run the programs on a standard computer for testing. The resulting sequencing data set from this will look very patchy and is not intended for use. Instructions for both options are included below.
+If you want to carry out _in silico_ whole-exome sequencing of the created tumour, this can be achieved with the following:
 
 (See https://github.com/GeorgetteTanner/w-Wessim for further details.)
+
+This example demonstrates how to use w-Wessim for _in silico_ whole-exome sequencing with a "real reads" probe sequences set. This method creates the most realistic sequencing dataset, but is a very time and memory consuming process and not feasible without access to a high performance computing system. Therefore the option of using a subsampled probe set (with 1/1000th of the probes) is available if the user wishes to run the programs on a standard computer for testing. The resulting sequencing data set from this will look very patchy and is not intended for any use. Instructions for both options are included below.
+
+Alternatively, the probe sequences from an exon capture kit can be used. This is much quicker and less memory intensive but results in a less realistic distribution of reads. Instructions for this can be found at https://github.com/GeorgetteTanner/w-Wessim.
+
+
 
 ```bash
 #Download programs - (you may get a few warnings during pblat installation that can be ignored):
