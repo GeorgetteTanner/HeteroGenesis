@@ -28,7 +28,7 @@ python setup.py install
 
 HeteroGenesis is implemented in three parts: 
 
-The first, **heterogenesis\_vargen**, takes: i) a FASTA genome sequence, ii) a .fai index file for the genome sequence, iii) an optional file containing known germline SNV and InDel locations and minor allele frequencies from dbSNP, and iv) a JSON file containing a set of parameters. It outputs a JSON file with lists of variants for the germline and each clone in the simulated tumour, as well as files containing the order that mutations occurred in each. 
+The first, **heterogenesis\_vargen**, takes: i) a FASTA genome sequence, ii) a .fai index file for the genome sequence, iii) an optional file containing known germline SNV and InDel locations and minor allele frequencies from dbSNP, and iv) a JSON file containing a set of parameters. It outputs a JSON file with lists of variants for the germline and each clone in the simulated tumour, as well as files containing the order that mutations occurred in each.
 
 The second part, **heterogenesis\_varincorp** is then run, once for each clone, and incorporates the list of variants for a clone into a reference genome. It outputs: i) the FASTA genome sequence (one file for each copy of a chromosome), ii) a VCF file of SNV and InDel positions and frequencies, and iii) a file containing the copy numbers along the genome.
 
@@ -40,7 +40,7 @@ The last part, **freqcalc**, can then be run to combine outputs from clones to g
 ### heterogenesis_vargen 
 
 ```
-heterogenesis\_vargen -j example.json
+heterogenesis_vargen -j example.json
 
 ```
 -v/--version : Version 
@@ -50,28 +50,28 @@ heterogenesis\_vargen -j example.json
 ### heterogenesis_varincorp
 
 ```
-heterogenesis\_varincorp -j example.json -c clone
+heterogenesis_varincorp -j example.json -c clone
 
 ```
 -v/--version : Version 
 
--j/--json : JSON file containing parameters. 
+-j/--json : JSON file containing parameters (the same file used for heterogenesis_vargen).  
 
 -c/--clone : Name of clone to generate genomes for.
 
 ### freqcalc
 
 ```
-freqcalc -c clones.txt -d {directory of HeteroGenesis outputs} -p {prefix} -n {name}
+freqcalc -c clones.txt -d {directory of heterogenesis_varincorp outputs} -p {prefix} -n {name}
 
 ```
 -v/-—version : Version 
 
 -c/--clones : File with clone proportions in format: 'clone name' \t 'fraction’.
 
--d/--directory : Directory containing VCF and CNV files.
+-d/--directory : Directory containing outputs of heterogenesis_varincorp. This should be the same as what was provided for the ‘directory’ parameter with heterogenesis_varincorp.
 
--p/--prefix : Prefix of VCF and CNV file names. This will be the same as what was provided for the ‘prefix’ parameter with HeteroGenesis.
+-p/--prefix : Prefix of heterogenesis_varincorp output file names. This should be the same as what was provided for the ‘prefix’ parameter with heterogenesis_varincorp.
 
 
 ## Inputs
@@ -85,7 +85,7 @@ A .fai index file for the reference genome, created with samtools faidx. This sh
 3. **dbSNP File:**
 A file of known germline SNVs and InDels, created using dbsnpextractor (https://github.com/GeorgetteTanner/dbsnpextractor) with the flat files available from dbSNP (https://www.ncbi.nlm.nih.gov/projects/SNP/). (Flat files are used instead of the dbSNP vcf file as that does not contain exact population allele frequencies.) These files must contain far more of both SNVs and InDels than the user wishes to simulate in order to allow more common variants to be incorporated more frequently than rarer ones.
 
-	Users can either download a pre-made subsampled version containing 10,000,000 variants (239271 deletions, 112984 insertions, 9647745 SNVs) (~1/8th of the total variants) from https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz, or recreate their own entire file. (Includes up to several days of downloading flat files!):
+	Users can either download a pre-made subsampled version containing 10,000,000 variants (239271 deletions, 112984 insertions, 9647745 SNVs) (~1/8th of the total variants) from https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz, or recreate their own entire file (which includes up to several days of downloading flat files!).:
 	
 ```bash
 for chromosome in $(seq 1 22) X Y ; \
