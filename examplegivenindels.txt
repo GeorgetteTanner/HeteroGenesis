@@ -1,0 +1,5 @@
+Chromosome	Position	Reference_allele	Alternate_allele
+chr22	17980595	ACCT	A
+chr21	20202116	T	TA
+chr21	31218792	GG	G
+chr22	19728164	C	CT

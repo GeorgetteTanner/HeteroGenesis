@@ -6,10 +6,17 @@ HeteroGenesis is used to generate genomes for multiple related clones in a heter
 
 HeteroGenesis can also then be used to combine the variant profiles outputs of each clone to give overall bulk tumour outputs that reflect user defined proportions of each clone in a tumour, and its purity. This is useful, for example, when the user intends to carry out *in silico* sequencing of each clone and combine the reads to form a bulk tumour dataset.
 
-For more information, see "Simulation of Heterogeneous Tumour Genomes with HeteroGenesis and In Silico Whole Exome Sequencing, Tanner G et al., 2018." (Manuscript submitted)
-Please cite this when using HeteroGnesis.
+For more information, see "Simulation of Heterogeneous Tumour Genomes with HeteroGenesis and In Silico Whole Exome Sequencing, Tanner G et al., 2019" - https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/bty1063/5273483 . 
+Please cite this when using HeteroGenesis.
+
+## Versions
+
+v1.2 - Allows the user to give lists of SNVs, indels, or CNVs for germline or somatic variants to be taken from. (12/02/19)
+
+v1.1 - Release at paper acceptance. (25/10/18)
 
 ## Requirements
+
 Python3 and numpy are required to run HeteroGenesis. Python 3.5.2 and numpy 1.12.0 and 1.12.1 have been tested succesfully with it.
 
 **heterogenesis\_vargen** takes 2hrs and 4GB RAM on a single thread to run under default parameters, which includes a germline and 2 somatic clones. 
@@ -121,9 +128,11 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |indsomatic|Rate of somatic indels per base.|0.000001|
 |cnvrepsomatic|Number of somatic replication CNVs.|250|
 |cnvdelsomatic|Number of somatic deletion CNVs.|250|
-|dbsnpsnvproportion|Proportion of germline SNVs taken from dbSNP. The default value is taken from an estimate of the proportion of SNVs found in dbSNP for coding regions, to make the genomes suitable for use with whole-exome *in silico* sequencing. The user may therefore wish to adjust this if they intend to use the genomes for other purposes. |0.9|
+|dbsnpsnvproportion|Proportion of germline SNVs taken from dbSNP. The default value is taken from an estimate of the proportion of SNVs found in dbSNP for coding regions, to make the genomes suitable for use with whole-exome *in silico* sequencing. The user may wish to adjust this if they intend to use the genomes for other purposes. |0.9|
 |dbsnpindelproportion|Proportion of germline InDels taken from dbSNP. Default value taken from estimates for coding regions, as above. |0.5|
 |chromosomes|List of chromosomes to include in the model. Alternatively, "all" can be given, in which case chromosomes 1-22 will be used. This only works for genomes for which chromosomes are labelled 'chr1','chr2'... (Also note that X and Y are not included with "all")|”all”|
+|givengermlinesnvs, givengermlineindels, givengermlinecnvs, givensomaticsnvs, givensomaticindels, givensomaticcnvs|Used to provide lists of variants for when the user wishes to sample from given variants instead of randomly generating them. See 'examplegivenXXX.txt' files for formatting. Only variants that fit into the genome (eg. not in deleted regions etc. will be used). Note: when a CNV is sampled from a given list, the distinction between replication and deletion CNVs (eg. cnvrepsomatic vs cnvdelsomatic) is ignored and the copy number is instead just taken from the given list. |''|
+|givengermlinesnvsproportion, givengermlineindelsproportion, givengermlinecnvsproportion, givensomaticsnvsproportion, givensomaticindelsproportion, givensomaticcnvsproportion|The proportion of variants taken from given lists. For germline SNVs/InDels the proportion of randomly generated variants is 1-(dbsnpsnvproportion + givengermlinesnvsproportion).|0.0|
 
 CNV lengths and copy numbers, and indel lengths are taken from lognormal distributions, that are defined by the mean and variance of the underlying normal distribution. Values from these distributions are then scaled up by a multiplication factor for cnv lengths. Indel length distributions are the same for germline and somatic.
 

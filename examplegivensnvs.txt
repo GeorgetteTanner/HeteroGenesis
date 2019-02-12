@@ -1,0 +1,5 @@
+Chromosome	Position	Reference_allele	Alternate_allele
+chr21	37592666	C	A
+chr22	45859504	T	C
+chr21	38677353	A	T
+chr21	19210832	T	C
