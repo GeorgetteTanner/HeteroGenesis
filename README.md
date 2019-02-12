@@ -13,7 +13,7 @@ Please cite this when using HeteroGenesis.
 
 v1.2 - Allows the user to give lists of SNVs, indels, or CNVs for germline or somatic variants to be taken from. (12/02/19)
 
-v1.1 - Release at paper acceptance. (25/10/18)
+v1.1 - Release at paper acceptance. (21/12/18)
 
 ## Requirements
 
