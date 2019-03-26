@@ -10,6 +10,7 @@ For more information, see "Simulation of Heterogeneous Tumour Genomes with Heter
 Please cite this when using HeteroGenesis.
 
 ## Versions
+v1.3 - Bug fixed in freqcalc that caused variant allele frequencies to be calculated incorrectly. (26/03/19)
 
 v1.2 - Allows the user to give lists of SNVs, indels, or CNVs for germline or somatic variants to be taken from. (12/02/19)
 
