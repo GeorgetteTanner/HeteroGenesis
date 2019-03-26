@@ -128,7 +128,7 @@ def main():
                 cnv=line.strip().split('\t')
                 if cnv[0] not in allcnvs:
                     allcnvs[cnv[0]]=[]
-                allcnvs[cnv[0]].append(BLOCK(int(cnv[1]),int(cnv[2]),float(cnv[3])*float(clones[clo]),float(cnv[5])*float(clones[clo]),float(cnv[5])*float(clones[clo])))
+                allcnvs[cnv[0]].append(BLOCK(int(cnv[1]),int(cnv[2]),float(cnv[3])*float(clones[clo]),float(cnv[4])*float(clones[clo]),float(cnv[5])*float(clones[clo])))
 
     #combine all cnvs
     comcnvs={}
@@ -161,9 +161,17 @@ def main():
     for var in allvars:
         if var[0]+var[1] in comvars:
             comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[6]))   #add to current value
-            comvars[var[0]+var[1]][5]=comvars[var[0]+var[1]][5]+(float(var[5])*float(var[6]))   #add to current value
         else:
-            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),(float(var[5])*float(var[6])),var[7][0]]  #multiply number of copies by clone proportion
+            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),'',var[7][0]]  #multiply number of copies by clone proportion
+    
+    for var in comvars:
+        cn=''
+        for cnv in comcnvs[comvars[var][0]]:
+            if int(comvars[var][1])>=cnv.start and int(comvars[var][1])<=cnv.end:
+                cn=cnv.content
+                break
+        comvars[var][5]=cn  #copy number 
+        
     with open(args.directory +'/'+ args.prefix + args.name + '.vcf','w+') as file:
         file.write('##fileformat=VCFv4.2'+'\n')
         file.write('##fileDate='+str(datetime.datetime.today().strftime('%Y%m%d'))+'\n')
