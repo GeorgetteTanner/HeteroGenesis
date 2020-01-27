@@ -53,11 +53,11 @@ def main():
     if "reference" not in parameters:
         error('No input genome fasta file provided.')
     if not os.path.exists(parameters['reference']):
-        error('Genome file not found.')           
+        error('Genome file not found.')
     if os.path.exists(parameters['reference'] + '.fai'):
         parameters['fai']=(parameters['reference'] + '.fai')
     else:
-        error('No fai index file for genome.')       
+        error('No fai index file for genome.')
     if "directory" not in parameters:
         warning('No output directory given, using current directory.')
         parameters['directory']='.'
@@ -65,10 +65,10 @@ def main():
         info('No tumour structure given, using "clone1,0.2,germline,clone2,0.8,clone1"')
         parameters['structure']="clone1,0.2,germline,clone2,0.8,clone1"
     if "snvgermline" not in parameters:
-        parameters['snvgermline']=0.00014
+        parameters['snvgermline']=0.0014
         info('No germline SNV rate given, using '+str(parameters['snvgermline'])+'.')
     if "indgermline" not in parameters:
-        parameters['indgermline']=0.000014
+        parameters['indgermline']=0.00014
         info('No germline InDel rate given, using '+str(parameters['indgermline'])+'.')
     if "cnvrepgermline" not in parameters:
         parameters['cnvrepgermline']=160
@@ -142,43 +142,43 @@ def main():
     if "wgdprob" not in parameters:
         parameters['wgdprob']=0
         info('No whole-genome event probability set. All aneuploid events will be single chromosome events.')
-    
+
     #given germline variants
-    if "givengermlinesnvsproportion" not in parameters:    
+    if "givengermlinesnvsproportion" not in parameters:
         parameters['givengermlinesnvsproportion']=0
     if "givengermlinesnvs" in parameters:
         info(str(parameters['givengermlinesnvsproportion'])+' x germline SNVs taken from ' + parameters['givengermlinesnvs'])
     if  float(parameters['givengermlinesnvsproportion'])+parameters['dbsnpsnvproportion']>1:
         error('givengermlinesnvsproportion + dbsnpsnvproportion > 1.0. Exiting')
-    if "givengermlineindelsproportion" not in parameters:    
+    if "givengermlineindelsproportion" not in parameters:
         parameters['givengermlineindelsproportion']=0
     if "givengermlineindels" in parameters:
         info(str(parameters['givengermlineindelsproportion'])+' x germline InDels taken from ' + parameters['givengermlineindels'])
     if  float(parameters['givengermlineindelsproportion'])+parameters['dbsnpindelproportion']>1:
         error('givengermlineindelsproportion + dbsnpindelproportion > 1.0. Exiting')
-    if "givengermlinecnvsproportion" not in parameters:    
+    if "givengermlinecnvsproportion" not in parameters:
         parameters['givengermlinecnvsproportion']=0
     if "givengermlinecnvs" in parameters:
         info(str(parameters['givengermlinecnvsproportion'])+' x germline CNVs taken from ' + parameters['givengermlinecnvs'])
-        
+
     #given somatic variants
-    if "givensomaticsnvsproportion" not in parameters:    
+    if "givensomaticsnvsproportion" not in parameters:
         parameters['givensomaticsnvsproportion']=0
     if "givensomaticsnvs" in parameters:
         info(str(parameters['givensomaticsnvsproportion'])+' x somatic SNVs taken from ' + parameters['givensomaticsnvs'])
     if  float(parameters['givensomaticsnvsproportion'])+parameters['dbsnpsnvproportion']>1:
         error('givensomaticsnvsproportion + dbsnpsnvproportion > 1.0. Exiting')
-    if "givensomaticindelsproportion" not in parameters:    
+    if "givensomaticindelsproportion" not in parameters:
         parameters['givensomaticindelsproportion']=0
     if "givensomaticindels" in parameters:
         info(str(parameters['givensomaticindelsproportion'])+' x somatic InDels taken from ' + parameters['givensomaticindels'])
     if  float(parameters['givensomaticindelsproportion'])+parameters['dbsnpindelproportion']>1:
         error('givensomaticindelsproportion + dbsnpindelproportion > 1.0. Exiting')
-    if "givensomaticcnvsproportion" not in parameters:    
+    if "givensomaticcnvsproportion" not in parameters:
         parameters['givensomaticcnvsproportion']=0
     if "givensomaticcnvs" in parameters:
         info(str(parameters['givensomaticcnvsproportion'])+' x somatic CNVs taken from ' + parameters['givensomaticcnvs'])
- 
+
     #Functions for reading in data----------------------------------------------------------------------------------
 
     def readinclones(parameters):    #formats structure parameter into dictionary
@@ -196,7 +196,7 @@ def main():
             print('Clone: ',c,', evolutionary distance: ',clones[c][0],', parent clone: ',clones[c][1])
         return(clones)
 
-    def readindbsnp(dbsnp,gen,reference,snvgernum,indgernum):    
+    def readindbsnp(dbsnp,gen,reference,snvgernum,indgernum):
         dbsnvalt=[]
         dbindelalt=[]
         dbsnvmaf=[]
@@ -215,28 +215,28 @@ def main():
                         else:   #if variant is an insertion
                             ref=reference[l[0]][int(l[1])-1]
                             alt=ref+l[2][1:]
-                        dbindelalt.append([l[0],l[1],ref,alt]) #append position and alt allele 
-                        dbindelmaf.append(l[3]) #append MAF 
+                        dbindelalt.append([l[0],l[1],ref,alt]) #append position and alt allele
+                        dbindelmaf.append(l[3]) #append MAF
                     else:
                         alt=l[2]
                         ref=reference[l[0]][int(l[1])-1]
                         if alt!=ref:
-                            dbsnvalt.append([l[0],l[1],ref,alt]) #append position and alt allele to chromosome key 
-                            dbsnvmaf.append(l[3]) #append MAF to chromosome key 
+                            dbsnvalt.append([l[0],l[1],ref,alt]) #append position and alt allele to chromosome key
+                            dbsnvmaf.append(l[3]) #append MAF to chromosome key
         p=[float(i) for i in dbsnvmaf]
         s=sum(p)
         p = [i/s for i in p] # normalize
- 
-        dlist=numpy.random.choice(range(0,len(dbsnvalt)),size=int(len(dbsnvalt)*0.9), p=p, replace=False)    #sample total number * 0.9 as some values have a p of 0 - shouldnt need the majority anyway      
+
+        dlist=numpy.random.choice(range(0,len(dbsnvalt)),size=int(len(dbsnvalt)*0.9), p=p, replace=False)    #sample total number * 0.9 as some values have a p of 0 - shouldnt need the majority anyway
         dbsnvs=[dbsnvalt[d] for d in dlist]
         p=[float(i) for i in dbindelmaf]
         s=sum(p)
         p = [i/s for i in p] # normalize
-        dlist=numpy.random.choice(range(0,len(dbindelalt)),size=int(len(dbindelalt)*0.9), p=p, replace=False)            
+        dlist=numpy.random.choice(range(0,len(dbindelalt)),size=int(len(dbindelalt)*0.9), p=p, replace=False)
         dbindels=[dbindelalt[d] for d in dlist]
         return(dbsnvs,dbindels)
 
-    def readingiven(givenin,reference):    
+    def readingiven(givenin,reference):
         givenout=[]
         with open(givenin,'r') as file:
             file.readline()
@@ -286,8 +286,8 @@ def main():
         return(chro,hap)
 
     def createaneu (gen,chrohaps):  #create information for an aneuploid variant
-        x=0        
-        while x==0:        
+        x=0
+        while x==0:
             chro=numpy.random.choice(list(gen.keys())) #choose chromosome randomly with even probabilities
             hap=numpy.random.choice(chrohaps[chro])
             copy=int(numpy.random.choice([0,2]))   #choose copy number of chromosome
@@ -298,17 +298,17 @@ def main():
     def createcnv(gen,chrohaps,vartype,somorger,pro2,givenlist):   #create information for a cnv variant
         source=numpy.random.choice(["random","given"],1,p=[1-float(pro2),float(pro2)])[0]
         if source=="given":
-            keep=False            
+            keep=False
             while keep==False:
                 if givenlist==[]:
-                    if somorger=='germline': 
-                        error('givengermlinecnvslist ran out of variants. Reduce the number of simulated germline CNVs or decrease the proportion taken from the given list.')            
+                    if somorger=='germline':
+                        error('givengermlinecnvslist ran out of variants. Reduce the number of simulated germline CNVs or decrease the proportion taken from the given list.')
                     else:
                         error('givensomaticcnvslist ran out of variants. Reduce the number of simulated somatic CNVs or decrease the proportion taken from the given list.')
                 l=givenlist[0]
                 chro=l[0]
                 if chrohaps[chro]!='': keep=True
-                givenlist=givenlist[1:] 
+                givenlist=givenlist[1:]
             hap=numpy.random.choice(chrohaps[chro],1)[0]
             position=int(l[1])
             length=int(l[2])
@@ -349,17 +349,17 @@ def main():
             alt=l[3]
             dbsnvs=dbsnvs[1:]
         elif source == "given":   #if taking variant from given list
-            keep=False            
+            keep=False
             while keep==False:
                 if givenlist==[]:
-                    if somorger=='germline': 
+                    if somorger=='germline':
                         error('givengermlinesnvslist ran out of variants. Reduce the number of simulated germline SNVs or decrease the proportion taken from the given list.')
                     else:
                         error('givensomaticnvslist ran out of variants. Reduce the number of simulated somatic SNVs or decrease the proportion taken from the given list.')
                 l=givenlist[0]
                 chro=l[0]
                 if chrohaps[chro]!='': keep=True
-                givenlist=givenlist[1:] 
+                givenlist=givenlist[1:]
             hap=numpy.random.choice(chrohaps[chro],1)[0]
             position=int(l[1])
             ref=l[2]
@@ -399,17 +399,17 @@ def main():
                 length=len(alt)-1
                 iod='i'
         elif source == "given":   #if taking variant from given list
-            keep=False            
+            keep=False
             while keep==False:
                 if givenlist==[]:
-                    if somorger=='germline': 
+                    if somorger=='germline':
                         error('givengermlineindelslist ran out of variants. Reduce the number of simulated germline InDels or decrease the proportion taken from the given list.')
                     else:
                         error('givensomaticindelslist ran out of variants. Reduce the number of simulated somatic InDels or decrease the proportion taken from the given list.')
                 l=givenlist[0]
                 chro=l[0]
                 if chrohaps[chro]!='': keep=True
-                givenlist=givenlist[1:]                
+                givenlist=givenlist[1:]
             hap=numpy.random.choice(chrohaps[chro],1)[0]
             position=int(l[1])
             ref=l[2]
@@ -427,7 +427,7 @@ def main():
                 length=int(round((float(numpy.random.lognormal(parameters['indmean'],parameters['indvariance'],1)[0])*parameters['indmultiply'])+0.5,0))
             seq=50*'N'
             ref='N'
-            while (seq.count('N')+seq.count('n')>float(length)/4) or ref[0]=='n' or ref[0]=='N':    #keep getting an indel until it doesn't contain more than 1/4 'N's or base isn't an N 
+            while (seq.count('N')+seq.count('n')>float(length)/4) or ref[0]=='n' or ref[0]=='N':    #keep getting an indel until it doesn't contain more than 1/4 'N's or base isn't an N
                 position=random.randint(1,gen[chro]-length)
                 iod=numpy.random.choice(['i','d'])
                 if iod=='i':
@@ -520,7 +520,7 @@ def main():
         return(lists,dbsnvs,givenlist)
 
     def getaneu(gen,lists,wgdprob):
-        
+
         def updatechros(chro,hap,copies,lists):
             #update chromosome haplotypes
             newhaps=[]
@@ -529,7 +529,7 @@ def main():
             for newhap in newhaps:
                 lists[1][chro].append(newhap)   #add haplotype for each copy number - eg. A,B becomes A,B,A1,A2,A3
             lists[1][chro].remove(hap)       #remove original
-            
+
             #update lists to replicate for each new haplotype
             for l in [2,3,4]:
                 for newhap in newhaps:
@@ -537,10 +537,10 @@ def main():
             if copies==0:
                 lists[4][chro+hap]=[1,gen[chro]]
             return lists
-        
-        
+
+
         wgd=numpy.random.choice([True,False],p=[wgdprob,1-wgdprob])
-        
+
         if wgd==True:
             v=['aneu','all','all',2]
             lists[0].append(v)
@@ -551,7 +551,7 @@ def main():
             v=createaneu(gen,lists[1])
             lists[0].append(v)
             lists=updatechros(v[1],v[2],v[3],lists)
-        
+
         print('Aneuploid event occured: ',v)
         return(lists)
 
@@ -624,32 +624,32 @@ def main():
     else:
         dbsnvs={}
         dbindels={}
-    
-    if "givengermlinesnvs" in parameters: 
+
+    if "givengermlinesnvs" in parameters:
         givengermlinesnvslist = readingiven(parameters["givengermlinesnvs"],reference)
     else:
         givengermlinesnvslist = ''
-    if "givengermlineindels" in parameters: 
+    if "givengermlineindels" in parameters:
         givengermlineindelslist = readingiven(parameters["givengermlineindels"],reference)
     else:
         givengermlineindelslist = ''
-    if "givengermlinecnvs" in parameters: 
+    if "givengermlinecnvs" in parameters:
         givengermlinecnvslist = readingiven(parameters["givengermlinecnvs"],reference)
     else:
         givengermlinecnvslist = ''
-    if "givensomaticsnvs" in parameters: 
+    if "givensomaticsnvs" in parameters:
         givensomaticsnvslist = readingiven(parameters["givensomaticsnvs"],reference)
     else:
         givensomaticsnvslist = ''
-    if "givensomaticindels" in parameters: 
+    if "givensomaticindels" in parameters:
         givensomaticindelslist = readingiven(parameters["givensomaticindels"],reference)
     else:
         givensomaticindelslist = ''
-    if "givensomaticcnvs" in parameters: 
+    if "givensomaticcnvs" in parameters:
         givensomaticcnvslist = readingiven(parameters["givensomaticcnvs"],reference)
     else:
         givensomaticcnvslist = ''
-    
+
     #Get germline variants ---------------------------------------------------------------------------------------------------
 
     #create empty lists/dictionarys

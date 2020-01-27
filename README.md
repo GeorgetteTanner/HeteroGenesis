@@ -1,4 +1,5 @@
-
+Modifications to make:
+minor allele frequencies can be taken form the dbsnp.vcf file from "CAF" instea of needing flat files
 
 # HeteroGenesis
 ## Introduction
@@ -119,8 +120,8 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |dbsnp|Pre formatted file of known germline SNPs and InDels, created from flat files from dbSNP by dbsnpextractor.|none|
 |directory|Directory to output all files to.|"./"|
 |structure|Structure of clones in the tumour, in the format: “clone1\_name, clone1\_distance\_from\_parent, clone1\_parent\_name, clone2_name, clone2\_distance\_from\_parent, clone2\_parent\_name…”. All parent clone names must also be listed as a separate clone, ie. if clone2’s parent clone is clone1, then clone1 must also be listed as a clone with a parent clone. The exception to this is when the parent clone is ‘germline’, and this must occur at least once as the parent clone for the root clone of the tumour. Loops in the lineage will cause the program to never end, ie. clone1->clone2->clone3->clone1. Distances from parent clones can be any fraction or number as they are used relative to each other.|"clone1,0.2,germline,clone2,0.8,clone1"|
-|snvgermline|Rate of germline SNVs per base.|0.00014|
-|indgermline|Rate of germline indels per base|0.000014|
+|snvgermline|Rate of germline SNVs per base.|0.0014|
+|indgermline|Rate of germline indels per base|0.00014|
 |cnvrepgermline|Number of germline replication CNVs.|160|
 |cnvdelgermline|Number of germline deletion CNVs.|1000|
 |aneuploid|Number of somatic aneuploid events. i.e. replication or deletion of chromosomes. These can either be whole genome duplication or individual chromosome duplication or deletion. Aneuploid events are prevented from deleting all copies of a chromosome. Germline aneuploid events are not available.|2|
