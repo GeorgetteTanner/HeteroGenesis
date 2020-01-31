@@ -686,10 +686,10 @@ def main():
     #get number of variants per clone
     for clo in clones:
         clones[clo].extend([0,0,0,0,0])    #repcnvs-2, delcnvs-3, indels-4, snvs-5, aneuploids-6
-    for i in range(0,parameters['cnvrepgermline']):     #pick random clones to add cnvrep to
+    for i in range(0,parameters['cnvrepsomatic']):     #pick random clones to add cnvrep to
         clo=chooseclone(clones,totdis)
         clones[clo][2]+=1
-    for i in range(0,parameters['cnvdelgermline']):     #pick random clones to add cnvdel to
+    for i in range(0,parameters['cnvdelsomatic']):     #pick random clones to add cnvdel to
         clo=chooseclone(clones,totdis)
         clones[clo][3]+=1
     for i in range(0,indsomnum):     #pick random clones to add indel to
