@@ -8,6 +8,8 @@ For more information, see "Simulation of Heterogeneous Tumour Genomes with Heter
 Please cite this when using HeteroGenesis.
 
 ## Versions
+v1.4 - Known variants from vcf file instead of flat files and improved speed when using known variants. (02/01/20)
+
 v1.3 - Bug fixed in freqcalc that caused variant allele frequencies to be calculated incorrectly. (26/03/19)
 
 v1.2 - Allows the user to give lists of SNVs, indels, or CNVs for germline or somatic variants to be taken from. (12/02/19)
@@ -18,8 +20,8 @@ v1.1 - Release at paper acceptance. (21/12/18)
 
 Python3 and numpy are required to run HeteroGenesis. Python 3.5.2 and numpy 1.12.0 and 1.12.1 have been tested succesfully with it.
 
-**heterogenesis\_vargen** takes 2hrs and 4GB RAM on a single thread to run under default parameters, which includes a germline and 2 somatic clones. 
-**heterogenesis\_varincorp** takes 1hr and 7GB RAM on a single thread to run ’clone1’ of this output.
+**heterogenesis\_vargen** takes ~2hrs and 5GB RAM on a single thread to run under default parameters, which includes a germline and 2 somatic clones. 
+**heterogenesis\_varincorp** takes ~1hr and 7GB RAM on a single thread to run ’clone1’ of this output.
 
 
 ## Installation
@@ -209,7 +211,7 @@ gunzip Homo_sapiens_assembly38.fasta.gz
 mkdir ../test1
 cd ../test1
 
-#Run heterogenesis_vargen: 
+#Run heterogenesis_vargen: ~1min
 heterogenesis_vargen -j ../HeteroGenesis/example.json
 
 #Run heterogenesis_varincorp on each clone and germline: ~5min
