@@ -1,6 +1,3 @@
-Modifications to make:
-minor allele frequencies can be taken form the dbsnp.vcf file from "CAF" instea of needing flat files
-
 # HeteroGenesis
 ## Introduction
 HeteroGenesis is used to generate genomes for multiple related clones in a heterogeneous tumour, along with a matched germline genome. For each clone and germline sample, it provides FASTA files containing the sequences for each copy of a chromosome in the genome, and files detailing the variants incorporated. 
@@ -91,22 +88,8 @@ freqcalc -c clones.txt -d {directory of heterogenesis_varincorp outputs} -p {pre
 The starting genome sequence, in FASTA format, that variants will be incorporated into. 
 2. **Reference Genome Index:**
 A .fai index file for the reference genome, created with samtools faidx. This should be saved in the same directory as the reference genome.
-3. **dbSNP File:**
-A file of known germline SNVs and InDels, created using dbsnpextractor (https://github.com/GeorgetteTanner/dbsnpextractor) with the flat files available from dbSNP (https://www.ncbi.nlm.nih.gov/projects/SNP/). (Flat files are used instead of the dbSNP vcf file as that does not contain exact population allele frequencies.) These files must contain far more of both SNVs and InDels than the user wishes to simulate in order to allow more common variants to be incorporated more frequently than rarer ones.
-
-	Users can either download a pre-made subsampled version containing 10,000,000 variants (239271 deletions, 112984 insertions, 9647745 SNVs) (~1/8th of the total variants) from https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz, or recreate their own entire file (which includes up to several days of downloading flat files!).:
-	
-```bash
-for chromosome in $(seq 1 22) X Y ; \
-do wget ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/ASN1_flat/ds_flat_ch${chromosome}.flat.gz ; \
-gunzip ds_flat_ch${chromosome}.flat.gz ; done
-cat ds_flat_ch*flat | grep -E ‘SNP|GMAF|CTG' > ds_flat_combined.flat
-cd ..
-git clone https://github.com/GeorgetteTanner/dbsnpextractor.git
-cd dbsnpextractor
-dbsnpextractor.py -i ../HeteroGenesis/ds_flat_combined.flat -o ../HeteroGenesisdsdata.txt
-cd ../HeteroGenesis
-```
+3. **dbSNP vcf File:**
+A vcf file of known germline SNVs and InDels from dbSNP (uncompressed). Eg. ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/dbsnp_146.hg38.vcf.gz. This may be filtered for lines containing "CAF" and subsampled to around 20,000,000 lines to reduce disk space or memory requirements if necessary. Fewer lines than this may be used but that will likely start to reduce the effect of more common known SNPs being incorporated more frequently than rarer known SNPs.
 
 4. **Parameters File:**
 A JSON file containing run parameters and locations of other inputs. Any parameter that is missing from the file will be set at its default value:
@@ -117,7 +100,7 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |---|---|---|
 |prefix	|String added to output file names.|""|
 |reference|FASTA file containing the sequence of a reference or other input genome. Must have a .fai index file located in the same directory. |Required|
-|dbsnp|Pre formatted file of known germline SNPs and InDels, created from flat files from dbSNP by dbsnpextractor.|none|
+|dbsnp|A vcf file of known germline SNPs and InDels from dbSNP.|none|
 |directory|Directory to output all files to.|"./"|
 |structure|Structure of clones in the tumour, in the format: “clone1\_name, clone1\_distance\_from\_parent, clone1\_parent\_name, clone2_name, clone2\_distance\_from\_parent, clone2\_parent\_name…”. All parent clone names must also be listed as a separate clone, ie. if clone2’s parent clone is clone1, then clone1 must also be listed as a clone with a parent clone. The exception to this is when the parent clone is ‘germline’, and this must occur at least once as the parent clone for the root clone of the tumour. Loops in the lineage will cause the program to never end, ie. clone1->clone2->clone3->clone1. Distances from parent clones can be any fraction or number as they are used relative to each other.|"clone1,0.2,germline,clone2,0.8,clone1"|
 |snvgermline|Rate of germline SNVs per base.|0.0014|
@@ -196,7 +179,7 @@ File with clone proportions in the format: 'clone name' \t 'fraction’ \n.
 ## Example
 
 
-This example demonstrates how to run the entire HeteroGenesis process on default parameters. This limits the simulation to use only chromosomes 21 and 22 in order to reduce run time to a few minutes.
+This example demonstrates how to run the entire HeteroGenesis process on test parameters. This limits the simulation to use only chromosomes 21 and 22 in order to reduce run time to a few minutes. For full runs, most parameters can be deleted from the json files and instead ran as defaults.
 
 ```bash
 #Install:
@@ -206,17 +189,16 @@ python setup.py install
 
 #EITHER:
 
-#1. If wanting germline variants from dbSNP, download a pre-made 
-#file that contains 10,000,000 subsampled variants (approximately 
-#1/8th of the total variants.):
-wget https://github.com/GeorgetteTanner/data/raw/master/dsdata.txt.gz
-gunzip dsdata.txt.gz
+#1. If wanting germline variants from dbSNP, download a dbsnp file and filter it to reduce memory requirement. 
+wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/dbsnp_146.hg38.vcf.gz
+gunzip dbsnp_146.hg38.vcf.gz | grep "CAF" | gshuf -n 20000000 > dbsnp.hg38.vcf
 
 #OR:
 
 #2. If not wanting to include dbSNP variants, remove the 
-#'"dbsnp":"./dsdata.txt",' line from example.json
-awk '!/dsdata/' example.json > temp ; mv temp example.json
+#'"dbsnp":"./dbsnp.hg38.vcf",' line from example.json
+awk '!/dbsnp/' example.json > temp ; mv temp example.json
+
 
 #Download reference genome (or copy from locally saved reference genome to save time):
 wget ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.fasta.gz

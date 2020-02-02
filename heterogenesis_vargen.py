@@ -23,6 +23,7 @@ import os.path
 import json
 from sys import stderr, exit
 
+
 signal(SIGPIPE, SIG_DFL) # Handle broken pipes
 
 
@@ -128,7 +129,7 @@ def main():
         parameters['chromosomes']='all'
         info('No chromosomes given, using '+str(parameters['chromosomes'])+'.')
     if "dbsnp" not in parameters:
-        info('No dnSNP file given, all variants will be randomly generated.')
+        info('No dbSNP file given, all variants will be randomly generated.')
         parameters['dbsnp']='none'
         parameters['dbsnpindelproportion']=0
         parameters['dbsnpsnvproportion']=0
@@ -196,7 +197,7 @@ def main():
             print('Clone: ',c,', evolutionary distance: ',clones[c][0],', parent clone: ',clones[c][1])
         return(clones)
 
-    def readindbsnp(dbsnp,gen,reference,snvgernum,indgernum):
+    def readindbsnp(dbsnp,reference,dbsnvnum,dbindnum):
         dbsnvalt=[]
         dbindelalt=[]
         dbsnvmaf=[]
@@ -204,35 +205,33 @@ def main():
         dbsnvs=[]
         dbindels=[]
         with open(dbsnp,'r') as file:
-            for l in file:
-                l=l.strip().split("\t")
-                if l[0] in reference:
-                    if l[1]=='?': continue
-                    if l[2].startswith('.'):    #if variant is an indel
-                        if l[2][1]=='-':    #if variant is a deletion
-                            ref=reference[l[0]][int(l[1])-1:int(l[1])+len(l[2])-1]   #get reference base for variant chromosome from variant position + length (minus 1 to account for python starting at 0, and minus one to account for non inclusive range max)
-                            alt=ref[0]
-                        else:   #if variant is an insertion
-                            ref=reference[l[0]][int(l[1])-1]
-                            alt=ref+l[2][1:]
-                        dbindelalt.append([l[0],l[1],ref,alt]) #append position and alt allele
-                        dbindelmaf.append(l[3]) #append MAF
-                    else:
-                        alt=l[2]
-                        ref=reference[l[0]][int(l[1])-1]
-                        if alt!=ref:
-                            dbsnvalt.append([l[0],l[1],ref,alt]) #append position and alt allele to chromosome key
-                            dbsnvmaf.append(l[3]) #append MAF to chromosome key
+            for line in file:
+                if "CAF=" in line:
+                    l=line.split("\t")
+                    if l[0] in reference:
+                        ref=l[3]
+                        alt=l[4].split(',')[0]
+                        if l[7].split(';')[-2].startswith('CAF='):
+                            maf=l[7].split(';')[-2].split(',')[1]
+                            if maf!='.' and float(maf)!=0:
+                                if len(ref)+len(alt)==2: #variant is a substitution
+                                    if alt.upper()!=ref.upper():
+                                        dbsnvalt.append([l[0],l[1],ref,alt]) 
+                                        dbsnvmaf.append(maf)
+                                elif len(ref)==1 or len(alt)==1: #variant is an indel
+                                    dbindelalt.append([l[0],l[1],ref,alt]) 
+                                    dbindelmaf.append(maf) 
+        info(str(len(dbsnvalt)+len(dbindelalt)) +' common variants read in from dbSNP vcf file.')
         p=[float(i) for i in dbsnvmaf]
         s=sum(p)
         p = [i/s for i in p] # normalize
-
-        dlist=numpy.random.choice(range(0,len(dbsnvalt)),size=int(len(dbsnvalt)*0.9), p=p, replace=False)    #sample total number * 0.9 as some values have a p of 0 - shouldnt need the majority anyway
+        dlist=numpy.random.choice(range(0,len(dbsnvalt)),size=dbsnvnum, p=p, replace=False)
         dbsnvs=[dbsnvalt[d] for d in dlist]
+        
         p=[float(i) for i in dbindelmaf]
         s=sum(p)
         p = [i/s for i in p] # normalize
-        dlist=numpy.random.choice(range(0,len(dbindelalt)),size=int(len(dbindelalt)*0.9), p=p, replace=False)
+        dlist=numpy.random.choice(range(0,len(dbindelalt)),size=dbindnum, p=p, replace=False)
         dbindels=[dbindelalt[d] for d in dlist]
         return(dbsnvs,dbindels)
 
@@ -342,12 +341,12 @@ def main():
         source=numpy.random.choice(["random","db","given"],1,p=[1-float(pro)-float(pro2),float(pro),float(pro2)])[0]
         if source == "db":   #if taking variant from dbindels
             l=dbsnvs[0]
+            del dbsnvs[0]
             chro=l[0]
             hap=numpy.random.choice(chrohaps[chro],1)[0]
             position=int(l[1])
             ref=l[2]
             alt=l[3]
-            dbsnvs=dbsnvs[1:]
         elif source == "given":   #if taking variant from given list
             keep=False
             while keep==False:
@@ -367,7 +366,7 @@ def main():
         else:
             chro,hap=choosechromosome(gen,chrohaps)
             ref='N'
-            while ref=='n' or ref=='N':
+            while ref=='n' or ref=='N' or ref=='R' or ref=='r' or ref=='M' or ref=='m':
                 position=random.randint(1,gen[chro])
                 ref=reference[chro][position-1]
             substitutions={}
@@ -510,8 +509,6 @@ def main():
             keep=True
             if v[3] in lists[2][v[1]+v[2]]:  #if position exists in dictionary
                 keep=False
-            if v[4].upper()==v[5].upper():  #if ref==alt from dbsnp
-                keep=False
             for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in dictionary
                 if v[3] <= x[1] and  v[3] >= x[0]:   #if position in deleted region
                     keep=False
@@ -592,7 +589,7 @@ def main():
 
 
     #Preparation---------------------------------------------------------------------------------------------
-
+    
     #Read in clones and reference genome
     clones=readinclones(parameters)    #get dictionary of specified clones
     if type(parameters['chromosomes'])==list:
@@ -617,10 +614,12 @@ def main():
     print('Number of germline deletion CNVs : ',parameters['cnvdelgermline'])
     print('Number of somatic deletion CNVs : ',parameters['cnvdelsomatic'])
     print('Number of somatic aneuploid events : ',parameters['aneuploid'])
-
+    
     #read in dbsnp if given
     if parameters['dbsnp'] != 'none':
-        dbsnvs,dbindels=readindbsnp(parameters['dbsnp'],gen,reference,snvgernum,indgernum)
+        dbsnvnum=round(snvgernum*parameters['dbsnpsnvproportion']*2)
+        dbindnum=round(indgernum*parameters['dbsnpindelproportion']*2)
+        dbsnvs,dbindels=readindbsnp(parameters['dbsnp'],gen,dbsnvnum,dbindnum)
     else:
         dbsnvs={}
         dbindels={}
@@ -662,7 +661,6 @@ def main():
         for hap in germlinevariants[1][chro]:
             for l in [2,3,4]:
                 germlinevariants[l][chro+hap]=[]
-
     #get variants
     vartypelist=['cnvrep']*parameters['cnvrepgermline']+['cnvdel']*parameters['cnvdelgermline']+['indel']*indgernum+['snv']*snvgernum
     if len(vartypelist)!=0:
@@ -674,7 +672,6 @@ def main():
             germlinevariants,dbindels,givengermlineindelslist=getind(gen,germlinevariants,dbindels,parameters['dbsnpindelproportion'],parameters['givengermlineindelsproportion'],givengermlineindelslist,'germline')
         elif vartype == 'snv':
             germlinevariants,dbsnvs,givengermlinesnvslist=getsnv(gen,germlinevariants,dbsnvs,parameters['dbsnpsnvproportion'],parameters['givengermlinesnvsproportion'],givengermlinesnvslist,'germline')
-
 
     #Get somatic variants ---------------------------------------------------------------------------------------------------
 
@@ -746,7 +743,6 @@ def main():
                 del unsortedclones[clo]
                 sortedclones[clo]=''
 
-
     #Write variant files------------------------------------------------------------------------------------------------------------
 
     variants['germline']=germlinevariants[:]
@@ -758,7 +754,6 @@ def main():
 
     with open(parameters['directory'] + '/' + parameters['prefix'] + 'variants.json','w+') as file:
         json.dump(variants, file, indent=1)
-
 
 # If run as main, run main():
 if __name__ == '__main__': main()
