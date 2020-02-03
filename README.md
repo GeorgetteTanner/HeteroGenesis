@@ -8,7 +8,7 @@ For more information, see "Simulation of Heterogeneous Tumour Genomes with Heter
 Please cite this when using HeteroGenesis.
 
 ## Versions
-v1.4 - Known variants from vcf file instead of flat files and improved speed when using known variants. (02/01/20)
+v1.4 - Known variants taken from vcf file instead of flat files and improved speed when using known variants. Fixed default germline SNV rate and somatic CNV number. (02/01/20)
 
 v1.3 - Bug fixed in freqcalc that caused variant allele frequencies to be calculated incorrectly. (26/03/19)
 
