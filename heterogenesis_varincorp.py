@@ -390,7 +390,7 @@ def main():
                                             break   #start from beginning of blocks as blocks have now changed
                                 else:
                                     for b in blocks[:m3]:
-                                        if (var.start > b.start) and (var.startL <= b.end):   #b.includes(var) #runs quicker having the code here
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
                                             blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
                                             break   #start from beginning of blocks as blocks have now changed
 
@@ -615,7 +615,6 @@ def main():
                 else:
                     combined[v][5].append([allvcfs[hap][v].haplo,allvcfs[hap][v].final])
         #Fill in the missing data
-        needtodel=[]            
         needtodel=[]
         for v in combined:
             #get total number of variant copies
