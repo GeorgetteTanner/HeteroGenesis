@@ -32,7 +32,7 @@ def main():
 
     def warning(msg):
         print('WARNING: {}'.format(msg), file=stderr)
-    
+
     def error(msg, exit_code=1):
         print('ERROR: {}'.format(msg), file=stderr)
         exit(exit_code)
@@ -122,7 +122,7 @@ def main():
                     for bb in combcnvsb[chro]:
                         if bb.includes(b):
                             bcnv=bb.content
-                            break    
+                            break
                     file.write(chro+'\t'+str(b.start)+'\t'+str(int(b.end))+'\t'+str(b.content)+'\t'+str(acnv)+'\t'+str(bcnv)+'\n')
 
     def writevcffile(directory,prefix,clo,combvcfs):
@@ -142,7 +142,7 @@ def main():
                 for v in combvcfs[chro]:
                     #write: chromosome, position, ., ref base, alternate base, ., ., 1, FORMAT,frequency, total copies, haplotypes, copies per haplotype, copynumber at position
                     haplotypes=','.join([h[0] for h in combvcfs[chro][v][5]])
-                    counts=','.join([str(h[1]) for h in combvcfs[chro][v][5]])                    
+                    counts=','.join([str(h[1]) for h in combvcfs[chro][v][5]])
                     file.write(chro+'\t'+str(combvcfs[chro][v][0])+'\t.\t'+str(combvcfs[chro][v][1])+'\t'+str(combvcfs[chro][v][2])+'\t.\t.\tNS=1\tAF:TC:HS:HC:CN\t'+str(combvcfs[chro][v][3])+':'+str(combvcfs[chro][v][4])+':'+haplotypes+':'+counts+':'+str(combvcfs[chro][v][6])+'\n')
 
     #Functions for generating output file data-------------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ def main():
             self.cnblocks=cnblocks
             self.vcfcounts=vcfcounts
         def getbasestring(self,ref):
-            
+
             def invert(forward):
                 reverse=[]
                 substitutions={}
@@ -215,7 +215,7 @@ def main():
                 substitutions['a']='t'
                 substitutions['t']='a'
                 substitutions['c']='g'
-                substitutions['g']='c' 
+                substitutions['g']='c'
                 substitutions['N']='N'
                 substitutions['n']='n'
                 substitutions['R']='R'
@@ -225,7 +225,7 @@ def main():
                 for i in forward[::-1]:
                     reverse.append(substitutions[i])
                 return reverse
-                
+
             basestring=[[]]
             for b in self.allblocks:
                 if b.flag=='s':
@@ -234,7 +234,7 @@ def main():
                         basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
                     else:
                         basestring[-1].extend(b.content)
-                elif b.flag=='e':    
+                elif b.flag=='e':
                     if b.content=='ref':
                         basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
                     else:
@@ -248,25 +248,206 @@ def main():
                     else:
                         basestring[-1].extend(b.content)
                     basestring[-2].extend(invert(basestring[-1]))
-                    basestring=basestring[:-1]    
+                    basestring=basestring[:-1]
                 else:
                     if b.content=='ref':
                         basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
                     else:
                         basestring[-1].extend(b.content)
             return basestring[-1]
-            
+
         def __str__(self): return('MODCHRO from {}: {} allblocks, {} cnblocks'.format(self.chromosome, len(self.allblocks), len(self.cnblocks)))
         def updateblocks(self,var):
+            #Blocks are split into 8 sections here to prevent exponetial run time from checking all vars against all previous vars.
+            #Instead they only have to be checked against vars in the section.
+            #Original code without 8-way splitting is commented out.
             if type(var.content)==str:  #if var contains a string (ie. snv or insertion indel) then just insert into allblocks
-                for b in self.allblocks:
-                    if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
-                        insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
-                        break    #break is important to stop multiple copies of the block having the vairant inserted
+                # m=int(len(self.allblocks)/2)
+                # uh=self.allblocks[m:]
+                # lh=self.allblocks[:m]
+                # if var.start>=uh[0].start:
+                #     for b in uh:
+                #         if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                #             insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                #             break    #break is important to stop multiple copies of the block having the vairant inserted
+                # else:
+                #     for b in lh:
+                #         if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                #             insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                #             break    #break is important to stop multiple copies of the block having the vairant inserted
+
+                m=int(len(self.allblocks)/2)
+                if var.start>=self.allblocks[m].start:
+                    m2=int(len(self.allblocks)/1.5)
+                    if var.start>=self.allblocks[m2].start:
+                        m3=int(len(self.allblocks)/1.15)
+                        if var.start>=self.allblocks[m3].start:
+                            for b in self.allblocks[m3:]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+                        else:
+                            for b in self.allblocks[m2:m3]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+                    else:
+                        m3=int(len(self.allblocks)/1.6)
+                        if var.start>=self.allblocks[m3].start:
+                            for b in self.allblocks[m3:m2]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+                        else:
+                            for b in self.allblocks[m:m3]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+                else:
+                    m2=int(len(self.allblocks)/4)
+                    if var.start>=self.allblocks[m2].start:
+                        m3=int(len(self.allblocks)/2.7)
+                        if var.start>=self.allblocks[m3].start:
+                            for b in self.allblocks[m3:m]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+                        else:
+                            for b in self.allblocks[m2:m3]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+                    else:
+                        m3=int(len(self.allblocks)/8)
+                        if var.start>=self.allblocks[m3].start:
+                            for b in self.allblocks[m3:m2]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+                        else:
+                            for b in self.allblocks[:m3]:
+                                if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                                    insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                                    break    #break is important to stop multiple copies of the block having the vairant inserted
+
+                # for b in self.allblocks:
+                #    if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                #        insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
+                #        break    #break is important to stop multiple copies of the block having the vairant inserted
+
             elif type(var.content)==int:   #if var contains an integer (ie. cnv or deletion indel) then update both allblocks and cnblocks
                 for blocks in self.allblocks,self.cnblocks:
                     if blocks==self.allblocks or var.end-var.start+1>50:    #prevent indel deletions being written to cnblocks
                         #split blocks at var break points
+
+                        m=int(len(blocks)/2)
+                        if var.start>=blocks[m].start:
+                            m2=int(len(blocks)/1.5)
+                            if var.start>=blocks[m2].start:
+                                m3=int(len(blocks)/1.15)
+                                if var.start>=blocks[m3].start:
+                                    for b in blocks[m3:]:
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[m2:m3]:
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                            else:
+                                m3=int(len(blocks)/1.6)
+                                if var.start>=blocks[m3].start:
+                                    for b in blocks[m3:m2]:
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[m:m3]:
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                        else:
+                            m2=int(len(blocks)/4)
+                            if var.start>=blocks[m2].start:
+                                m3=int(len(blocks)/2.7)
+                                if var.start>=blocks[m3].start:
+                                    for b in blocks[m3:m]:
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[m2:m3]:
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                            else:
+                                m3=int(len(blocks)/8)
+                                if var.start>=blocks[m3].start:
+                                    for b in blocks[m3:m2]:
+                                        if (var.start > b.start) and (var.start <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[:m3]:
+                                        if (var.start > b.start) and (var.startL <= b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+
+                        m=int(len(blocks)/2)
+                        if var.end>blocks[m-1].end:
+                            m2=int(len(blocks)/1.5)
+                            if var.end>blocks[m2-1].end:
+                                m3=int(len(blocks)/1.15)
+                                if var.end>blocks[m3-1].end:
+                                    for b in blocks[m3:]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[m2:m3]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                            else:
+                                m3=int(len(blocks)/1.6)
+                                if var.end>blocks[m3-1].end:
+                                    for b in blocks[m3:m2]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[m:m3]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                        else:
+                            m2=int(len(blocks)/4)
+                            if var.end>blocks[m2-1].end:
+                                m3=int(len(blocks)/2.7)
+                                if var.end>blocks[m3-1].end:
+                                    for b in blocks[m3:m]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[m2:m3]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                            else:
+                                m3=int(len(blocks)/8)
+                                if var.end>blocks[m3-1].end:
+                                    for b in blocks[m3:m2]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+                                else:
+                                    for b in blocks[:m3]:
+                                        if (var.end >= b.start) and (var.end < b.end):   #b.includes(var) #runs quicker having the code here
+                                            blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                                            break   #start from beginning of blocks as blocks have now changed
+
                         contin=False
                         while contin==False:
                             contin=True
@@ -275,6 +456,7 @@ def main():
                                     blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
                                     contin=False   #break the while loop only if run through all bs with no splits
                                     break   #start from beginning of blocks as blocks have now changed
+
                         #copy blocks withing the var region
                         i=-1
                         copy=[]
@@ -296,7 +478,7 @@ def main():
                             else:
                                 pass
                         #remove original blocks
-                        for bl in copy: 
+                        for bl in copy:
                             blocks.remove(bl)
             else:
                 print("ERROR")
@@ -347,28 +529,31 @@ def main():
 
 
     def insertblock(blocks,spblock,newblock):
-        #insert a single base block (from snv or insertion indel) into an existing block and return all 3 resulting blocks (or 2 if the blocks start or end at the same position)        
+        #insert a single base block (from snv or insertion indel) into an existing block and return all 3 resulting blocks (or 2 if the blocks start or end at the same position)
         leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,'')
         rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,'')
         if spblock.start==newblock.start: #if newblock starts on same base as existing, don't include leftblock
-            if spblock.flag=='s':newblock.flag='s'   
+            if spblock.flag=='s':newblock.flag='s'
             if spblock.flag=='se':
                 newblock.flag='s'
                 rightblock.flag='e'
-            blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([newblock,rightblock])
+            idx=blocks.index(spblock)
+            blocks[idx:idx+1]=deepcopy([newblock,rightblock])
         elif spblock.end==newblock.end:  #if newblock ends on same base as existing, don't include rightblock
             if spblock.flag=='e':newblock.flag='e'
             if spblock.flag=='se':
                 leftblock.flag='s'
                 newblock.flag='e'
-            blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([leftblock,newblock])
+            idx=blocks.index(spblock)
+            blocks[idx:idx+1]=deepcopy([leftblock,newblock])
         else:
             if spblock.flag=='s':leftblock.flag='s'
             if spblock.flag=='e':rightblock.flag='e'
             if spblock.flag=='se':
                 leftblock.flag='s'
                 rightblock.flag='e'
-            blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([leftblock,newblock,rightblock])
+            idx=blocks.index(spblock)
+            blocks[idx:idx+1]=deepcopy([leftblock,newblock,rightblock])
         return blocks
 
     def combinecnvs(modchro,gen):
@@ -381,15 +566,15 @@ def main():
             allcnvs.extend(modchro[hap].cnblocks)
             if hap.startswith('A'):
                 acnvs.extend(modchro[hap].cnblocks)
-            else: 
+            else:
                 bcnvs.extend(modchro[hap].cnblocks)
         #split cnv blocks so none overlap
-        phase=[allcnvs,acnvs,bcnvs]    
+        phase=[allcnvs,acnvs,bcnvs]
         combined=[]
         combineda=[]
         combinedb=[]
         outs=[combined,combineda,combinedb]
-        for p in range(3):        
+        for p in range(3):
             contin=False
             while contin==False:
                 contin2=False
@@ -431,6 +616,7 @@ def main():
                     combined[v][5].append([allvcfs[hap][v].haplo,allvcfs[hap][v].final])
         #Fill in the missing data
         needtodel=[]            
+        needtodel=[]
         for v in combined:
             #get total number of variant copies
             total=sum([i[1] for i in combined[v][5]])
@@ -502,12 +688,11 @@ def main():
 
     #Generate vcf and cnv output data and write to files-------------------------------------------------------------------------------------------------
     #convert variants to objects and use to update modchros, and then calculate combined vcfs and cnvs
-
     modchros=createmodchros(clo,gen,variants)
     hapvars=createhapvars(clo,gen,variants)
     combcnvs={}    #dictionary of combined copy numbers for each chromosome
     combcnvsa={}
-    combcnvsb={}    
+    combcnvsb={}
     combvcfs={}    #dictionary of combined vcfs for each chromosome
     for chro in hapvars:
         for hap in hapvars[chro]:
@@ -531,18 +716,14 @@ def main():
         combvcfs[chro]=combinevcfs(modchros[chro],combcnvs[chro])
 
     #write output files ------------------------------------------------------------------------------------------------------
-
-
     #write variant files
     #writeblocksfile(parameters['directory'],parameters['prefix'],clo,hapvars,modchros)   #This can be uncommented and used for testing if needed
     writecnvfile(parameters['directory'],parameters['prefix'],clo,combcnvs,combcnvsa,combcnvsb)
     writevcffile(parameters['directory'],parameters['prefix'],clo,combvcfs)
-
     #Generate genome sequences and write to files
     for chro in hapvars:
         for hap in hapvars[chro]:
             writestring=modchros[chro][hap].getbasestring(gen[chro])
             writebasestringtofile(parameters,clo,chro,hap,writestring)
-
 # If run as main, run main():
 if __name__ == '__main__': main()
