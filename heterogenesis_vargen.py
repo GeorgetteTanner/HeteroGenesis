@@ -22,6 +22,7 @@ from signal import signal, SIGPIPE, SIG_DFL
 import os.path
 import json
 from sys import stderr, exit
+from copy import deepcopy
 
 
 signal(SIGPIPE, SIG_DFL) # Handle broken pipes
@@ -307,7 +308,7 @@ def main():
                 l=givenlist[0]
                 chro=l[0]
                 if chrohaps[chro]!='': keep=True
-                givenlist=givenlist[1:]
+                del givenlist[0]
             hap=numpy.random.choice(chrohaps[chro],1)[0]
             position=int(l[1])
             length=int(l[2])
@@ -358,7 +359,7 @@ def main():
                 l=givenlist[0]
                 chro=l[0]
                 if chrohaps[chro]!='': keep=True
-                givenlist=givenlist[1:]
+                del givenlist[0]
             hap=numpy.random.choice(chrohaps[chro],1)[0]
             position=int(l[1])
             ref=l[2]
@@ -408,7 +409,7 @@ def main():
                 l=givenlist[0]
                 chro=l[0]
                 if chrohaps[chro]!='': keep=True
-                givenlist=givenlist[1:]
+                del givenlist[0]
             hap=numpy.random.choice(chrohaps[chro],1)[0]
             position=int(l[1])
             ref=l[2]
@@ -457,11 +458,15 @@ def main():
                     keep=False
                     c+=1
                     break
-            for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in deletions dictionary
+            for x in lists[4][v[1]+v[2]][0]:    #for each breakpoint pair in deletions list
                 if (v[3] >= x[0] and  v[3] <= x[1]) or (v[3]+v[4]-1 >= x[0] and v[3]+v[4]-1 <= x[1]):   #if start or end positions in deleted region
                     keep=False
                     c+=1
                     break
+            if v[3] in lists[4][v[1]+v[2]][1] or v[3]+v[4]-1 in lists[4][v[1]+v[2]][1]: #if start or end positions in deleted dictionary
+                keep=False
+                c+=1
+                
             if c>100:
                 warning('Not enough room in genome for so many CNVs. Program may not end. Kill me now...')
 
@@ -469,7 +474,7 @@ def main():
         if v[5]!=0: #if cnv is not a deletion
             lists[3][v[1]+v[2]].append([v[3],v[3]+v[4]-1]) #add to the cnv breakpoints dictionary for key(chromosome+haplotype), [start,end]
         if v[5]==0: #if cnv is a deletion
-            lists[4][v[1]+v[2]].append([v[3],v[3]+v[4]-1]) #add to the deleted regions dictionary for key(chromosome+haplotype), [start,end]
+            lists[4][v[1]+v[2]][0].append([v[3],v[3]+v[4]-1]) #add to the deleted regions list for key(chromosome+haplotype), [start,end]
         return(lists,givenlist)
 
     def getind(gen,lists,dbindels,dbsnpindelproportion,pro2,givenlist,somorger):
@@ -482,24 +487,29 @@ def main():
             if v[3] in lists[2][v[1]+v[2]]:  #if position exists in snv/indel dictionary
                     keep=False
             if v[7]=='i':
-                for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in deletions dictionary
+                for x in lists[4][v[1]+v[2]][0]:    #for each breakpoint pair in deletions list
                     if v[3] <= x[1] and  v[3]+1 >= x[0]:   #if previous base in deleted region
                         keep=False
+                if v[3] in lists[4][v[1]+v[2]][1]:   #if position in deleted region dictionary
+                    keep=False       
             if v[7]=='d':
-                for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in deletions dictionary
-                    if (v[3] <= x[1] and  v[3]+1 >= x[0]) or (v[3]+1 +v[4]-1 <= x[1] and  v[3]+1+v[4]-1 >= x[0]):   #if previous base or end position in deleted region
+                for x in lists[4][v[1]+v[2]][0]:    #for each breakpoint pair in deletions list
+                    if (v[3] <= x[1] and  v[3]+1 >= x[0]) or (v[3]+1 +v[4]-1 <= x[1] and  v[3]+1+v[4]-1 >= x[0]): #if previous base or previous base +1 or end position in deleted region list
                         keep=False
+                if v[3] in lists[4][v[1]+v[2]][1] or v[3]+1 in lists[4][v[1]+v[2]][1] or v[3]+1+v[4]-1 in lists[4][v[1]+v[2]][1]:#if previous base or previous base +1 or end position in deleted region dictionary
+                    keep=False 
                 for x in lists[3][v[1]+v[2]]:    #for each breakpoint pair in cnv breakpoints dictionary
                     if (v[3] <= x[0] and  v[3]+1 +v[4]-1  >= x[0]) or (v[3] <= x[1] and  v[3]+1 +v[4]-1 >= x[1]):   #if cnv start position or end position in or next to deleted region
                         keep=False
-                for x in range(v[3]+1,v[3]+1 +v[4]-1):  #if indel covers an existing snv
+                for x in range(v[3]+1,v[3]+1 +v[4]-1):  #if indel covers an existing snv or indel
                     if x in lists[2][v[1]+v[2]]:
                         keep=False
 
         lists[0].append(v)   #add variant to variants list
         lists[2][v[1]+v[2]].append(v[3]) #add to the indel dictionary for key(chromosome+haplotype)
-        if v[6]=='d': #if indel is a deletion
-            lists[4][v[1]+v[2]].append([v[3]+1,v[3]+1+v[4]-1]) #add to the deleted regions dictionary for key(chromosome+haplotype), [start,end] - previous base is also added to simplify the genome writing stage (don't want a cnv starting/ending between previous base and deleted region)
+        if v[7]=='d': #if indel is a deletion
+            for de in range(v[3],v[3]+1+v[4]): #startpos,startpos+1+length. No -1 as range stop not inclusive. Previous base is also added to simplify the genome writing stage (don't want a cnv starting/ending between previous base and deleted region)
+                lists[4][v[1]+v[2]][1][de]='' #add to the deleted regions dictionary for key(chromosome+haplotype)
         return(lists,dbindels,givenlist)
 
     def getsnv(gen,lists,dbsnvs,dbsnpsnvproportion,pro2,givenlist,somorger):
@@ -509,9 +519,11 @@ def main():
             keep=True
             if v[3] in lists[2][v[1]+v[2]]:  #if position exists in dictionary
                 keep=False
-            for x in lists[4][v[1]+v[2]]:    #for each breakpoint pair in dictionary
-                if v[3] <= x[1] and  v[3] >= x[0]:   #if position in deleted region
+            for x in lists[4][v[1]+v[2]][0]:    #for each breakpoint pair in dictionary
+                if v[3] <= x[1] and  v[3] >= x[0]:   #if position in deleted region list
                     keep=False
+            if v[3] in lists[4][v[1]+v[2]][1]:   #if position in deleted region dictionary
+                keep=False
         lists[0].append(v)   #add variant to variants list
         lists[2][v[1]+v[2]].append(v[3])
         return(lists,dbsnvs,givenlist)
@@ -532,7 +544,7 @@ def main():
                 for newhap in newhaps:
                     lists[l][chro+newhap]=lists[l][chro+hap]
             if copies==0:
-                lists[4][chro+hap]=[1,gen[chro]]
+                lists[4][chro+hap][0]=[1,gen[chro]]
             return lists
 
 
@@ -652,15 +664,17 @@ def main():
     #Get germline variants ---------------------------------------------------------------------------------------------------
 
     #create empty lists/dictionarys
-    germlinevariants=[[],{},{},{},{}]  #variants-0, haplotypes-1, dict of SNV positions-2, dict of CNV breakpoints-3, dict of deleted regions-4
+    germlinevariants=[[],{},{},{},{}]  #variants-0, haplotypes-1, dict of SNV positions-2, dict of CNV breakpoints-3, list and dict of deleted regions-4
 
     #get starting chromosome haplotypes
     for chro in gen:
         germlinevariants[1][chro]=['A','B']
     #add empty keys for each haplotype in each list
         for hap in germlinevariants[1][chro]:
-            for l in [2,3,4]:
+            for l in [2,3]:
                 germlinevariants[l][chro+hap]=[]
+            for l in [4]:
+                germlinevariants[l][chro+hap]=[[],{}] #create list of list and dictionary for deleted regions
     #get variants
     vartypelist=['cnvrep']*parameters['cnvrepgermline']+['cnvdel']*parameters['cnvdelgermline']+['indel']*indgernum+['snv']*snvgernum
     if len(vartypelist)!=0:
@@ -709,20 +723,20 @@ def main():
     while len(unsortedclones)!=0:
         for clo in list(unsortedclones.keys()):   #write files for clones for which parent clone's files have been written
             if clones[clo][1] in sortedclones:
-                variants[clo]=[[],{},{},{},{}] #variants-0, haplotypes-1, dict of SNV positions-2, dict of CNV breakpoints-3, dict of deleted regions-4
+                variants[clo]=[[],{},{},{},[]] #variants-0, haplotypes-1, dict of SNV positions-2, dict of CNV breakpoints-3, dict of deleted regions-4
                 if clones[clo][1] != 'germline': #if parent clone isn't germline then copy variants from parent clone
-                    for a in variants[clones[clo][1]][0]: variants[clo][0].append(a) #copy variants
-                    for a in list(variants[clones[clo][1]][1]): variants[clo][1][a]=list(variants[clones[clo][1]][1][a])  #copy chromosome haplotypes
-                    for a in list(variants[clones[clo][1]][2]): variants[clo][2][a]=list(variants[clones[clo][1]][2][a])  #copy dict of SNV/indel positions
-                    for a in list(variants[clones[clo][1]][3]): variants[clo][3][a]=list(variants[clones[clo][1]][3][a])  #copy dict of CNV breakpoints
-                    for a in list(variants[clones[clo][1]][4]): variants[clo][4][a]=list(variants[clones[clo][1]][4][a])  #copy dict of deleted regions
+                    variants[clo][0]=deepcopy(variants[clones[clo][1]][0]) #copy variants
+                    variants[clo][1]=deepcopy(variants[clones[clo][1]][1]) #copy chromosome haplotypes
+                    variants[clo][2]=deepcopy(variants[clones[clo][1]][2]) #copy dict of SNV/indel positions
+                    variants[clo][3]=deepcopy(variants[clones[clo][1]][3])  #copy dict of CNV breakpoints
+                    variants[clo][4]=deepcopy(variants[clones[clo][1]][4])  #copy list of list and dict of deleted regions
                 else:
                     #get variants from germline
-                    for a in germlinevariants[0]: variants[clo][0].append(a)
-                    for a in list(germlinevariants[1]): variants[clo][1][a]=list(germlinevariants[1][a])
-                    for a in list(germlinevariants[2]): variants[clo][2][a]=list(germlinevariants[2][a])
-                    for a in list(germlinevariants[3]): variants[clo][3][a]=list(germlinevariants[3][a])
-                    for a in list(germlinevariants[4]): variants[clo][4][a]=list(germlinevariants[4][a])
+                    variants[clo][0]=deepcopy(germlinevariants[0])
+                    variants[clo][1]=deepcopy(germlinevariants[1])
+                    variants[clo][2]=deepcopy(germlinevariants[2])
+                    variants[clo][3]=deepcopy(germlinevariants[3])
+                    variants[clo][4]=deepcopy(germlinevariants[4])
                 #get new varaints
                 vartypelist=['cnvrep']*clones[clo][2]+['cnvdel']*clones[clo][3]+['indel']*clones[clo][4]+['snv']*clones[clo][5]+['aneu']*clones[clo][6]
                 if len(vartypelist)!=0:

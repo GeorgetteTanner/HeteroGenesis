@@ -67,7 +67,10 @@ heterogenesis_varincorp -j example.json -c clone
 
 -c/--clone : Name of clone to generate genomes for.
 
+-x/--chromosome : Optional - Name of a single chromosome to process. Output files can be combined for multiple chromosomes after running.
+
 ### freqcalc
+
 
 ```
 freqcalc -c clones.txt -d {directory of heterogenesis_varincorp outputs} -p {prefix} -n {name}
@@ -77,10 +80,11 @@ freqcalc -c clones.txt -d {directory of heterogenesis_varincorp outputs} -p {pre
 
 -c/--clones : File with clone proportions in format: 'clone name' \t 'fraction’.
 
--d/--directory : Directory containing outputs of heterogenesis_varincorp. This should be the same as what was provided for the ‘directory’ parameter with heterogenesis_varincorp.
+-d/--directory : Directory containing outputs of heterogenesis\_varincorp. This should be the same as what was provided for the ‘directory’ parameter with heterogenesis_varincorp.
 
--p/--prefix : Prefix of heterogenesis_varincorp output file names. This should be the same as what was provided for the ‘prefix’ parameter with heterogenesis_varincorp.
+-p/--prefix : Prefix of heterogenesis\_varincorp output file names. This should be the same as what was provided for the ‘prefix’ parameter with heterogenesis_varincorp.
 
+(If the -x option was used in varincorp to process individual chromosoms separately, the vcf an cnv output files must be combined and chromosome names removed from file names before running freqcalc.)
 
 ## Inputs
 
