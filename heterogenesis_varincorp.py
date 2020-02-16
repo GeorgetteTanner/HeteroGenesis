@@ -22,6 +22,7 @@ from copy import deepcopy
 import os.path
 from sys import stderr, exit
 import datetime
+import inspect
 
 signal(SIGPIPE, SIG_DFL) # Handle broken pipes
 
@@ -32,7 +33,7 @@ def main():
 
     def warning(msg):
         print('WARNING: {}'.format(msg), file=stderr)
-    
+
     def error(msg, exit_code=1):
         print('ERROR: {}'.format(msg), file=stderr)
         exit(exit_code)
@@ -41,9 +42,14 @@ def main():
     parser.add_argument('-v', '--version', action='version', version='%(prog)s {0}'.format(version['__version__']))
     parser.add_argument('-j', '--json', dest='jsonfile', required=True, type=str, help='Json file with parameters')
     parser.add_argument('-c', '--clone', dest='clone', required=True, type=str, help='Clone to be processed')
+    parser.add_argument('-x', '--chromosome', dest='chromosome', type=str, help='Chromosome to be processed')
 
     args = parser.parse_args()
     clo=args.clone
+
+    prochro=args.chromosome
+    if prochro==None:
+        prochro=''
 
     with open(args.jsonfile,'r') as file:
         parameters=json.load(file)
@@ -61,9 +67,15 @@ def main():
         warning('No output directory given, using current directory.')
         parameters['directory']='.'
     if "chromosomes" not in parameters:
-        warning('No chromosomes given, using "all".')
-        parameters['chromosomes']='all'
-
+        if str(prochro)=='':
+            parameters['chromosomes']='all'
+        else:
+            parameters['chromosomes']=prochro
+    else:
+        if str(prochro)=='':
+            pass
+        else:
+            parameters['chromosomes']=prochro
     #Functions for reading in data----------------------------------------------------------------------------------
 
     def readinfai(chromosomes,fai,referencefile): #reads in reference and fai files for required chromosomes into dictionaries
@@ -102,16 +114,16 @@ def main():
 
     #Functions for writing output files--------------------------------------------------------------------------------
 
-    def writeblocksfile(directory,prefix,clo,hapvars,modchros):
-        with open(directory + '/' + prefix + clo + 'blocks.txt','w+') as file:
+    def writeblocksfile(directory,prefix,clo,hapvars,modchros,prochro):
+        with open(directory + '/' + prefix + clo + prochro + 'blocks.txt','w+') as file:
             for chro in hapvars:
                 for hap in hapvars[chro]:
                     file.write(clo+'_'+chro+'_'+hap+'\n')
                     for b in modchros[chro][hap].allblocks:
                         file.write(str(b)+'\n')
 
-    def writecnvfile(directory,prefix,clo,combcnvs,combcnvsa,combcnvsb):
-        with open(directory + '/' + prefix + clo + 'cnv.txt','w+') as file:
+    def writecnvfile(directory,prefix,clo,combcnvs,combcnvsa,combcnvsb,prochro):
+        with open(directory + '/' + prefix + clo + prochro + 'cnv.txt','w+') as file:
             file.write('Chromosome\tStart\tEnd\tCopy Number\tA Allele\tB Allele\n')
             for chro in combcnvs:
                 for b in combcnvs[chro]:
@@ -122,11 +134,11 @@ def main():
                     for bb in combcnvsb[chro]:
                         if bb.includes(b):
                             bcnv=bb.content
-                            break    
+                            break
                     file.write(chro+'\t'+str(b.start)+'\t'+str(int(b.end))+'\t'+str(b.content)+'\t'+str(acnv)+'\t'+str(bcnv)+'\n')
 
-    def writevcffile(directory,prefix,clo,combvcfs):
-        with open(directory + '/' + prefix + clo + '.vcf','w+') as file:
+    def writevcffile(directory,prefix,clo,combvcfs,prochro):
+        with open(directory + '/' + prefix + clo + prochro + '.vcf','w+') as file:
             file.write('##fileformat=VCFv4.2\n')
             file.write('##fileDate='+str(datetime.datetime.today().strftime('%Y%m%d'))+'\n')
             file.write('##source=heterogenesis_varincorp-'+clo+'\n')
@@ -142,7 +154,7 @@ def main():
                 for v in combvcfs[chro]:
                     #write: chromosome, position, ., ref base, alternate base, ., ., 1, FORMAT,frequency, total copies, haplotypes, copies per haplotype, copynumber at position
                     haplotypes=','.join([h[0] for h in combvcfs[chro][v][5]])
-                    counts=','.join([str(h[1]) for h in combvcfs[chro][v][5]])                    
+                    counts=','.join([str(h[1]) for h in combvcfs[chro][v][5]])
                     file.write(chro+'\t'+str(combvcfs[chro][v][0])+'\t.\t'+str(combvcfs[chro][v][1])+'\t'+str(combvcfs[chro][v][2])+'\t.\t.\tNS=1\tAF:TC:HS:HC:CN\t'+str(combvcfs[chro][v][3])+':'+str(combvcfs[chro][v][4])+':'+haplotypes+':'+counts+':'+str(combvcfs[chro][v][6])+'\n')
 
     #Functions for generating output file data-------------------------------------------------------------------------------------
@@ -157,6 +169,28 @@ def main():
 
     def getstart(block):
         return(block.start)
+
+    #These functions aren't used as they would require blocks to be unique and in order
+    # def findblockstart(var,blocksfraction):
+    #     if len(blocksfraction)>1:
+    #         m=int(len(blocksfraction)/2)
+    #         if var.start>=blocksfraction[m].start:
+    #             blocksfraction=blocksfraction[m:]
+    #             var,blocksfraction=findblockstart(var,blocksfraction)
+    #         else:
+    #             blocksfraction=blocksfraction[:m]
+    #             var,blocksfraction=findblockstart(var,blocksfraction)
+    #     return var,blocksfraction
+    # def findblockend(var,blocksfraction):
+    #     if len(blocksfraction)>1:
+    #         m=int(len(blocksfraction)/2)-1
+    #         if var.end>blocksfraction[m].end:
+    #             blocksfraction=blocksfraction[m+1:]
+    #             var,blocksfraction=findblockend(var,blocksfraction)
+    #         else:
+    #             blocksfraction=blocksfraction[:m+1]
+    #             var,blocksfraction=findblockend(var,blocksfraction)
+    #     return var,blocksfraction
 
     class BLOCK(object):
         def __init__(self, start, end, content,flag):
@@ -204,7 +238,7 @@ def main():
             self.cnblocks=cnblocks
             self.vcfcounts=vcfcounts
         def getbasestring(self,ref):
-            
+
             def invert(forward):
                 reverse=[]
                 substitutions={}
@@ -215,7 +249,7 @@ def main():
                 substitutions['a']='t'
                 substitutions['t']='a'
                 substitutions['c']='g'
-                substitutions['g']='c' 
+                substitutions['g']='c'
                 substitutions['N']='N'
                 substitutions['n']='n'
                 substitutions['R']='R'
@@ -225,7 +259,7 @@ def main():
                 for i in forward[::-1]:
                     reverse.append(substitutions[i])
                 return reverse
-                
+
             basestring=[[]]
             for b in self.allblocks:
                 if b.flag=='s':
@@ -234,7 +268,7 @@ def main():
                         basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
                     else:
                         basestring[-1].extend(b.content)
-                elif b.flag=='e':    
+                elif b.flag=='e':
                     if b.content=='ref':
                         basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
                     else:
@@ -248,39 +282,72 @@ def main():
                     else:
                         basestring[-1].extend(b.content)
                     basestring[-2].extend(invert(basestring[-1]))
-                    basestring=basestring[:-1]    
+                    basestring=basestring[:-1]
                 else:
                     if b.content=='ref':
                         basestring[-1].extend(reference[self.chromosome][int(b.start)-1:int(b.end)])    #b.start and b.end sometimes get .0 on end so need to be converted to int
                     else:
                         basestring[-1].extend(b.content)
             return basestring[-1]
-            
+
         def __str__(self): return('MODCHRO from {}: {} allblocks, {} cnblocks'.format(self.chromosome, len(self.allblocks), len(self.cnblocks)))
+
         def updateblocks(self,var):
             if type(var.content)==str:  #if var contains a string (ie. snv or insertion indel) then just insert into allblocks
+
                 for b in self.allblocks:
-                    if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
+                    if (var.start <= b.end):
+                    #if (var.start >= b.start) and (var.end <= b.end):   #b.includes(var) #runs quicker having the code here
                         insertblock(self.allblocks,b,var)  #split block in half, remove one base form middle, and insert new block
                         break    #break is important to stop multiple copies of the block having the vairant inserted
             elif type(var.content)==int:   #if var contains an integer (ie. cnv or deletion indel) then update both allblocks and cnblocks
                 for blocks in self.allblocks,self.cnblocks:
                     if blocks==self.allblocks or var.end-var.start+1>50:    #prevent indel deletions being written to cnblocks
-                        #split blocks at var break points
-                        contin=False
-                        while contin==False:
-                            contin=True
-                            for b in blocks:
-                                if ((var.start > b.start) and (var.start <= b.end)) or ((var.end >= b.start) and (var.end < b.end)):    #b.splitby(var) #runs quicker having the code here
-                                    blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
-                                    contin=False   #break the while loop only if run through all bs with no splits
-                                    break   #start from beginning of blocks as blocks have now changed
+
+                        # contin=False
+                        # while contin==False:
+                        #     contin=True
+                        #     for b in blocks:
+                        #         if ((var.start > b.start) and (var.start <= b.end)) or ((var.end >= b.start) and (var.end < b.end)):    #b.splitby(var) #runs quicker having the code here
+                        #             b,blocks=splitblocks(blocks,b,var)  #split block at cnv start and/or end position
+                        #             contin=False   #break the while loop only if run through all bs with no splits
+                        #             break   #start from beginning of blocks as blocks have now changed
+
+
+                        # firstbreak=False
+                        # secondbreak=False
+                        # for b in blocks:
+                        #     if firstbreak==False:
+                        #         if (var.start <= b.end):
+                        #             addedblocks,blocks=splitblocks(blocks,b,var)
+                        #             firstbreak=True
+                        #             for a in addedblocks:
+                        #                 if (var.end <= a.end):
+                        #                     addedblocks,blocks=splitblocks(blocks,a,var)
+                        #                     secondbreak=True
+                        #                     break
+                        #             if secondbreak==True:
+                        #                 break
+                        #     elif (var.end <= b.end):
+                        #         addedblocks,blocks=splitblocks(blocks,b,var)
+                        #         break
+
+
+
+                        for b in blocks:
+                            if ((var.start >= b.start) and (var.start <= b.end)):
+                                blocks=splitblocks(blocks,b,var)  #split block at cnv start position
+                                break   #prevent multiple blocks being split to save time - only need first copy split
+                            if ((var.end >= b.start) and (var.end < b.end)):    #b.splitby(var) #runs quicker having the code here
+                                blocks=splitblocks(blocks,b,var)  #split block at cnv end position
+                                break   #prevent multiple blocks being split to save time - only need first copy split
+
                         #copy blocks withing the var region
                         i=-1
                         copy=[]
                         for b in blocks:
                             i+=1
-                            if var.includes(b):
+                            if (b.start >= var.start) and (b.end <= var.end): #var.includes(b) - runs quicker here
                                 copy.append(b)
                             elif copy!=[]: #if there are blocks recorded to copy
                                 if var.content!=0:
@@ -296,7 +363,7 @@ def main():
                             else:
                                 pass
                         #remove original blocks
-                        for bl in copy: 
+                        for bl in copy:
                             blocks.remove(bl)
             else:
                 print("ERROR")
@@ -326,6 +393,7 @@ def main():
 
     def splitblocks(blocks,spblock,newblock):
         #split block by an overlapping block and return the fragments of the split block
+        addedblocks=[]
         if newblock.start > spblock.start and newblock.end < spblock.end:
             leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,'')
             midblock=BLOCK(newblock.start,newblock.end,spblock.content,'')
@@ -333,42 +401,48 @@ def main():
             if spblock.flag=='s' or spblock.flag=='se':leftblock.flag='s'
             if spblock.flag=='e' or spblock.flag=='se':rightblock.flag='e'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,midblock,rightblock]
+            addedblocks=[leftblock,midblock,rightblock]
         elif newblock.start > spblock.start:
             leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,'')
             rightblock=BLOCK(newblock.start,spblock.end,spblock.content,'')
             if spblock.flag=='s':leftblock.flag='s'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,rightblock]
+            addedblocks=[leftblock,rightblock]
         elif newblock.end < spblock.end:
             leftblock=BLOCK(spblock.start,newblock.end,spblock.content,'')
             rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,'')
             if spblock.flag=='e':rightblock.flag='e'
             blocks[blocks.index(spblock):blocks.index(spblock)+1]=[leftblock,rightblock]
-        return blocks
+            addedblocks=[leftblock,rightblock]
+        return addedblocks,blocks
 
 
     def insertblock(blocks,spblock,newblock):
-        #insert a single base block (from snv or insertion indel) into an existing block and return all 3 resulting blocks (or 2 if the blocks start or end at the same position)        
+        #insert a single base block (from snv or insertion indel) into an existing block and return all 3 resulting blocks (or 2 if the blocks start or end at the same position)
         leftblock=BLOCK(spblock.start,newblock.start-1,spblock.content,'')
         rightblock=BLOCK(newblock.end+1,spblock.end,spblock.content,'')
         if spblock.start==newblock.start: #if newblock starts on same base as existing, don't include leftblock
-            if spblock.flag=='s':newblock.flag='s'   
+            if spblock.flag=='s':newblock.flag='s'
             if spblock.flag=='se':
                 newblock.flag='s'
                 rightblock.flag='e'
-            blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([newblock,rightblock])
+            idx=blocks.index(spblock)
+            blocks[idx:idx+1]=deepcopy([newblock,rightblock])
         elif spblock.end==newblock.end:  #if newblock ends on same base as existing, don't include rightblock
             if spblock.flag=='e':newblock.flag='e'
             if spblock.flag=='se':
                 leftblock.flag='s'
                 newblock.flag='e'
-            blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([leftblock,newblock])
+            idx=blocks.index(spblock)
+            blocks[idx:idx+1]=deepcopy([leftblock,newblock])
         else:
             if spblock.flag=='s':leftblock.flag='s'
             if spblock.flag=='e':rightblock.flag='e'
             if spblock.flag=='se':
                 leftblock.flag='s'
                 rightblock.flag='e'
-            blocks[blocks.index(spblock):blocks.index(spblock)+1]=deepcopy([leftblock,newblock,rightblock])
+            idx=blocks.index(spblock)
+            blocks[idx:idx+1]=deepcopy([leftblock,newblock,rightblock])
         return blocks
 
     def combinecnvs(modchro,gen):
@@ -381,15 +455,15 @@ def main():
             allcnvs.extend(modchro[hap].cnblocks)
             if hap.startswith('A'):
                 acnvs.extend(modchro[hap].cnblocks)
-            else: 
+            else:
                 bcnvs.extend(modchro[hap].cnblocks)
         #split cnv blocks so none overlap
-        phase=[allcnvs,acnvs,bcnvs]    
+        phase=[allcnvs,acnvs,bcnvs]
         combined=[]
         combineda=[]
         combinedb=[]
         outs=[combined,combineda,combinedb]
-        for p in range(3):        
+        for p in range(3):
             contin=False
             while contin==False:
                 contin2=False
@@ -399,7 +473,7 @@ def main():
                         break
                     for c in phase[p]:
                         if c.splitby(cnv):
-                            allcnvs=splitblocks(phase[p],c,cnv)  #split c at cnv start and/or end position
+                            addedblocks,allcnvs=splitblocks(phase[p],c,cnv)  #split c at cnv start and/or end position
                             contin2=True   #causes break from first loop
                             break   #start from beginning of cnvs as cnvs have now changed
                         else:
@@ -430,7 +504,7 @@ def main():
                 else:
                     combined[v][5].append([allvcfs[hap][v].haplo,allvcfs[hap][v].final])
         #Fill in the missing data
-        needtodel=[]            
+        needtodel=[]
         for v in combined:
             #get total number of variant copies
             total=sum([i[1] for i in combined[v][5]])
@@ -502,12 +576,11 @@ def main():
 
     #Generate vcf and cnv output data and write to files-------------------------------------------------------------------------------------------------
     #convert variants to objects and use to update modchros, and then calculate combined vcfs and cnvs
-
     modchros=createmodchros(clo,gen,variants)
     hapvars=createhapvars(clo,gen,variants)
     combcnvs={}    #dictionary of combined copy numbers for each chromosome
     combcnvsa={}
-    combcnvsb={}    
+    combcnvsb={}
     combvcfs={}    #dictionary of combined vcfs for each chromosome
     for chro in hapvars:
         for hap in hapvars[chro]:
@@ -527,22 +600,24 @@ def main():
                 elif var[0]=='aneu':
                     pass    #no need to do anything
             modchros[chro][hap].addupfinalvcfs()
+            print(str(datetime.datetime.now())+' : Processed mutations for '+chro+hap)
         combcnvs[chro],combcnvsa[chro],combcnvsb[chro]=combinecnvs(modchros[chro],gen)
+        print(str(datetime.datetime.now())+' : Calculated copy numbers for '+chro)
         combvcfs[chro]=combinevcfs(modchros[chro],combcnvs[chro])
+        print(str(datetime.datetime.now())+' : Calculated variant allele frequencies for '+chro)
 
     #write output files ------------------------------------------------------------------------------------------------------
-
-
     #write variant files
     #writeblocksfile(parameters['directory'],parameters['prefix'],clo,hapvars,modchros)   #This can be uncommented and used for testing if needed
-    writecnvfile(parameters['directory'],parameters['prefix'],clo,combcnvs,combcnvsa,combcnvsb)
-    writevcffile(parameters['directory'],parameters['prefix'],clo,combvcfs)
-
+    writecnvfile(parameters['directory'],parameters['prefix'],clo,combcnvs,combcnvsa,combcnvsb,prochro)
+    print(str(datetime.datetime.now())+' : Written copy numbers file')
+    writevcffile(parameters['directory'],parameters['prefix'],clo,combvcfs,prochro)
+    print(str(datetime.datetime.now())+' : Written vcf file')
     #Generate genome sequences and write to files
     for chro in hapvars:
         for hap in hapvars[chro]:
             writestring=modchros[chro][hap].getbasestring(gen[chro])
             writebasestringtofile(parameters,clo,chro,hap,writestring)
-
+            print(str(datetime.datetime.now())+' : Written fasta sequence for '+chro+hap)
 # If run as main, run main():
 if __name__ == '__main__': main()
