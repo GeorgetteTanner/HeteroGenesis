@@ -314,33 +314,23 @@ def main():
                         #             break   #start from beginning of blocks as blocks have now changed
 
 
-                        # firstbreak=False
-                        # secondbreak=False
-                        # for b in blocks:
-                        #     if firstbreak==False:
-                        #         if (var.start <= b.end):
-                        #             addedblocks,blocks=splitblocks(blocks,b,var)
-                        #             firstbreak=True
-                        #             for a in addedblocks:
-                        #                 if (var.end <= a.end):
-                        #                     addedblocks,blocks=splitblocks(blocks,a,var)
-                        #                     secondbreak=True
-                        #                     break
-                        #             if secondbreak==True:
-                        #                 break
-                        #     elif (var.end <= b.end):
-                        #         addedblocks,blocks=splitblocks(blocks,b,var)
-                        #         break
-
-
-
+                        firstbreak=False
+                        secondbreak=False
                         for b in blocks:
-                            if ((var.start >= b.start) and (var.start <= b.end)):
-                                blocks=splitblocks(blocks,b,var)  #split block at cnv start position
-                                break   #prevent multiple blocks being split to save time - only need first copy split
-                            if ((var.end >= b.start) and (var.end < b.end)):    #b.splitby(var) #runs quicker having the code here
-                                blocks=splitblocks(blocks,b,var)  #split block at cnv end position
-                                break   #prevent multiple blocks being split to save time - only need first copy split
+                            if firstbreak==False:
+                                if (var.start <= b.end):
+                                    addedblocks,blocks=splitblocks(blocks,b,var)
+                                    firstbreak=True
+                                    for a in addedblocks:
+                                        if (var.end <= a.end):
+                                            addedblocks,blocks=splitblocks(blocks,a,var)
+                                            secondbreak=True
+                                            break
+                                    if secondbreak==True:
+                                        break
+                            elif (var.end <= b.end):
+                                addedblocks,blocks=splitblocks(blocks,b,var)
+                                break
 
                         #copy blocks withing the var region
                         i=-1

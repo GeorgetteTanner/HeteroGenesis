@@ -85,7 +85,7 @@ def main():
         parameters['snvsomatic']=0.00001
         info('No somatic SNV rate given, using '+str(parameters['snvsomatic'])+'.')
     if "indsomatic" not in parameters:
-        parameters['indsomatic']=0.000001
+        parameters['indsomatic']=0.000002
         info('No somatic InDel rate given, using '+str(parameters['indsomatic'])+'.')
     if "cnvrepsomatic" not in parameters:
         parameters['cnvrepsomatic']=250
@@ -101,7 +101,7 @@ def main():
         info('No lognormal variance for germline CNV lengths given, using '+str(parameters['cnvgermlinevariance'])+'.')
     if "cnvgermlinemultiply" not in parameters:
         parameters['cnvgermlinemultiply']=1000000
-        info('No multipication factor for germline CNV length given, using '+str(parameters['cnvgermlinemultiply'])+'.')
+        info('No multiplication factor for germline CNV length given, using '+str(parameters['cnvgermlinemultiply'])+'.')
     if "cnvsomaticmean" not in parameters:
         parameters['cnvsomaticmean']=-1
         info('No lognormal mean for somatic CNV lengths given, using '+str(parameters['cnvsomaticmean'])+'.')
@@ -110,7 +110,7 @@ def main():
         info('No lognormal variance for somatic CNV lengths given, using '+str(parameters['cnvsomaticvariance'])+'.')
     if "cnvsomaticmultiply" not in parameters:
         parameters['cnvsomaticmultiply']=1000000
-        info('No multipication factor for somatic CNV length given, using '+str(parameters['cnvsomaticmultiply'])+'.')
+        info('No multiplication factor for somatic CNV length given, using '+str(parameters['cnvsomaticmultiply'])+'.')
     if "indmean" not in parameters:
         parameters['indmean']=-2
         info('No mean for InDel lengths given, using '+str(parameters['indmean'])+'.')
@@ -119,7 +119,7 @@ def main():
         info('No variance for InDel lengths given, using '+str(parameters['indvariance'])+'.')
     if "indmultiply" not in parameters:
         parameters['indmultiply']=1
-        info('No multipication factor for InDel length given, using '+str(parameters['indmultiply'])+'.')
+        info('No multiplication factor for InDel length given, using '+str(parameters['indmultiply'])+'.')
     if "cnvcopiesmean" not in parameters:
         parameters['cnvcopiesmean']=1
         info('No mean cnv copy number given, using '+str(parameters['cnvcopiesmean'])+'.')
@@ -217,18 +217,18 @@ def main():
                             if maf!='.' and float(maf)!=0:
                                 if len(ref)+len(alt)==2: #variant is a substitution
                                     if alt.upper()!=ref.upper():
-                                        dbsnvalt.append([l[0],l[1],ref,alt]) 
+                                        dbsnvalt.append([l[0],l[1],ref,alt])
                                         dbsnvmaf.append(maf)
                                 elif len(ref)==1 or len(alt)==1: #variant is an indel
-                                    dbindelalt.append([l[0],l[1],ref,alt]) 
-                                    dbindelmaf.append(maf) 
+                                    dbindelalt.append([l[0],l[1],ref,alt])
+                                    dbindelmaf.append(maf)
         info(str(len(dbsnvalt)+len(dbindelalt)) +' common variants read in from dbSNP vcf file.')
         p=[float(i) for i in dbsnvmaf]
         s=sum(p)
         p = [i/s for i in p] # normalize
         dlist=numpy.random.choice(range(0,len(dbsnvalt)),size=dbsnvnum, p=p, replace=False)
         dbsnvs=[dbsnvalt[d] for d in dlist]
-        
+
         p=[float(i) for i in dbindelmaf]
         s=sum(p)
         p = [i/s for i in p] # normalize
@@ -466,7 +466,7 @@ def main():
             if v[3] in lists[4][v[1]+v[2]][1] or v[3]+v[4]-1 in lists[4][v[1]+v[2]][1]: #if start or end positions in deleted dictionary
                 keep=False
                 c+=1
-                
+
             if c>100:
                 warning('Not enough room in genome for so many CNVs. Program may not end. Kill me now...')
 
@@ -491,13 +491,13 @@ def main():
                     if v[3] <= x[1] and  v[3]+1 >= x[0]:   #if previous base in deleted region
                         keep=False
                 if v[3] in lists[4][v[1]+v[2]][1]:   #if position in deleted region dictionary
-                    keep=False       
+                    keep=False
             if v[7]=='d':
                 for x in lists[4][v[1]+v[2]][0]:    #for each breakpoint pair in deletions list
                     if (v[3] <= x[1] and  v[3]+1 >= x[0]) or (v[3]+1 +v[4]-1 <= x[1] and  v[3]+1+v[4]-1 >= x[0]): #if previous base or previous base +1 or end position in deleted region list
                         keep=False
                 if v[3] in lists[4][v[1]+v[2]][1] or v[3]+1 in lists[4][v[1]+v[2]][1] or v[3]+1+v[4]-1 in lists[4][v[1]+v[2]][1]:#if previous base or previous base +1 or end position in deleted region dictionary
-                    keep=False 
+                    keep=False
                 for x in lists[3][v[1]+v[2]]:    #for each breakpoint pair in cnv breakpoints dictionary
                     if (v[3] <= x[0] and  v[3]+1 +v[4]-1  >= x[0]) or (v[3] <= x[1] and  v[3]+1 +v[4]-1 >= x[1]):   #if cnv start position or end position in or next to deleted region
                         keep=False
@@ -601,7 +601,7 @@ def main():
 
 
     #Preparation---------------------------------------------------------------------------------------------
-    
+
     #Read in clones and reference genome
     clones=readinclones(parameters)    #get dictionary of specified clones
     if type(parameters['chromosomes'])==list:
@@ -626,7 +626,7 @@ def main():
     print('Number of germline deletion CNVs : ',parameters['cnvdelgermline'])
     print('Number of somatic deletion CNVs : ',parameters['cnvdelsomatic'])
     print('Number of somatic aneuploid events : ',parameters['aneuploid'])
-    
+
     #read in dbsnp if given
     if parameters['dbsnp'] != 'none':
         dbsnvnum=round(snvgernum*parameters['dbsnpsnvproportion']*2)

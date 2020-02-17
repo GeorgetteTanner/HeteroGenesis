@@ -20,8 +20,8 @@ v1.1 - Release at paper acceptance. (21/12/18)
 
 Python3 and numpy are required to run HeteroGenesis. Python 3.5.2 and numpy 1.12.0 and 1.12.1 have been tested succesfully with it.
 
-**heterogenesis\_vargen** takes ~2hrs and 5GB RAM on a single thread to run under default parameters, which includes a germline and 2 somatic clones. 
-**heterogenesis\_varincorp** takes ~1hr and 7GB RAM on a single thread to run ’clone1’ of this output.
+**heterogenesis\_vargen** takes ~6hrs and 5GB RAM on a single thread to run under default parameters, which includes a germline and 2 somatic clones. 
+**heterogenesis\_varincorp** takes ~6hr and 8GB RAM on a single thread to process chr1 of ’clone1’ of this output. This can be run in parallel for all chromosomes and clones.
 
 
 ## Installation
@@ -116,7 +116,7 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |aneuploid|Number of somatic aneuploid events. i.e. replication or deletion of chromosomes. These can either be whole genome duplication or individual chromosome duplication or deletion. Aneuploid events are prevented from deleting all copies of a chromosome. Germline aneuploid events are not available.|2|
 |wgdprob|Probability that each aneuploid event is a whole-genome duplication.|0.0|
 |snvsomatic|Rate of somatic SNVs per base.|0.00001|
-|indsomatic|Rate of somatic indels per base.|0.000001|
+|indsomatic|Rate of somatic indels per base.|0.000002|
 |cnvrepsomatic|Number of somatic replication CNVs.|250|
 |cnvdelsomatic|Number of somatic deletion CNVs.|250|
 |dbsnpsnvproportion|Proportion of germline SNVs taken from dbSNP. The default value is taken from an estimate of the proportion of SNVs found in dbSNP for coding regions, to make the genomes suitable for use with whole-exome *in silico* sequencing. The user may wish to adjust this if they intend to use the genomes for other purposes. |0.9|
