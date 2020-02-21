@@ -542,7 +542,7 @@ def main():
             #update lists to replicate for each new haplotype
             for l in [2,3,4]:
                 for newhap in newhaps:
-                    lists[l][chro+newhap]=lists[l][chro+hap]
+                    lists[l][chro+newhap]=deepcopy(lists[l][chro+hap]) #(this is equivalent of deepcopy)
             if copies==0:
                 lists[4][chro+hap][0]=[1,gen[chro]]
             return lists
@@ -752,15 +752,16 @@ def main():
                     elif vartype == 'snv':
                         variants[clo],dontneed,givensomaticsnvslist=getsnv(gen,variants[clo],'',0,parameters['givensomaticsnvsproportion'],givensomaticsnvslist,'somatic')
                     elif vartype == 'aneu':
+                        #print('before: '+str(variants[clo][1]))
                         variants[clo]=getaneu(gen,variants[clo],float(parameters['wgdprob']))
+                        #print(str(variants[clo][0]))
+                        #print('after: '+str(variants[clo][1]))
 
                 del unsortedclones[clo]
                 sortedclones[clo]=''
 
     #Write variant files------------------------------------------------------------------------------------------------------------
 
-    variants['germline']=germlinevariants[:]
-    clones['germline']=''
     writevariantfile(parameters['directory'],parameters['prefix'],germlinevariants,'germline')
     for clo in clones:
         writevariantfile(parameters['directory'],parameters['prefix'],variants[clo],clo)
