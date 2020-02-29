@@ -761,7 +761,8 @@ def main():
                 sortedclones[clo]=''
 
     #Write variant files------------------------------------------------------------------------------------------------------------
-
+    variants['germline']=germlinevariants[:]
+    clones['germline']=''
     writevariantfile(parameters['directory'],parameters['prefix'],germlinevariants,'germline')
     for clo in clones:
         writevariantfile(parameters['directory'],parameters['prefix'],variants[clo],clo)
