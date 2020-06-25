@@ -33,10 +33,10 @@ def main():
     parser.add_argument('-n', '--name', dest='name', required=True, type=str, help='Output name of tumour sample.')
 
     args = parser.parse_args()
-    
+
     def warning(msg):
         print('WARNING: {}'.format(msg), file=stderr)
-    
+
     def error(msg, exit_code=1):
         print('ERROR: {}'.format(msg), file=stderr)
         exit(exit_code)
@@ -118,44 +118,44 @@ def main():
     for clo in clones:
         if not (os.path.exists(args.directory +'/'+ args.prefix + clo + 'cnv.txt') + os.path.exists(args.directory +'/'+ args.prefix + clo + '.vcf')):
             error('Variant profiles for '+clo+' do not exist.')
-            
+
     #Get all cnvs from cnv files
     allcnvs={}
     for clo in clones:
         with open(args.directory +'/'+ args.prefix + clo + 'cnv.txt','r') as file:
-            file.readline()
             for line in file:
-                cnv=line.strip().split('\t')
-                if cnv[0] not in allcnvs:
-                    allcnvs[cnv[0]]=[]
-                allcnvs[cnv[0]].append(BLOCK(int(cnv[1]),int(cnv[2]),float(cnv[3])*float(clones[clo]),float(cnv[4])*float(clones[clo]),float(cnv[5])*float(clones[clo])))
+                if not line.starswith('Chromosome'):
+                    cnv=line.strip().split('\t')
+                    if cnv[0] not in allcnvs:
+                        allcnvs[cnv[0]]=[]
+                    allcnvs[cnv[0]].append(BLOCK(int(cnv[1]),int(cnv[2]),float(cnv[3])*float(clones[clo]),float(cnv[4])*float(clones[clo]),float(cnv[5])*float(clones[clo])))
 
     #combine all cnvs
     comcnvs={}
     for chromo in allcnvs:
         comcnvs[chromo]=combinecnvs(allcnvs[chromo])
 
-    #write file 
+    #write file
     with open(args.directory + '/'+ args.prefix + args.name + 'cnv.txt','w') as file:
         file.write('Chromosome\tStart\tEnd\tCopy Number\tA Allele\tB Allele\n')
         for chromo in comcnvs:
             for cnv in comcnvs[chromo]:
                 file.write(chromo+'\t'+str(cnv.start) +'\t'+str(cnv.end)+'\t'+str(cnv.content)+'\t'+str(cnv.aallele)+'\t'+str(cnv.ballele)+'\n')
-    
+
 
     #Get all vars from vcf files
     allvars=[]
     for clo in clones:
         with open(args.directory +'/'+ args.prefix + clo + '.vcf','r') as file:
             for line in file:
-                if line.startswith('#'): 
+                if line.startswith('#'):
                     if line.startswith('##reference=file:'):
                         reference = line[17:].strip('\n')
                     continue
                 var=line.split('\t')
                 allvars.append([var[0],str(var[1]),var[3],var[4],int(var[9].split(':')[1]),int(var[9].split(':')[4]),float(clones[clo]),str(var[9].split(':')[2])])
-                
-                
+
+
     #combine all vars
     comvars={}
     for var in allvars:
@@ -163,15 +163,15 @@ def main():
             comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[6]))   #add to current value
         else:
             comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),'',var[7][0]]  #multiply number of copies by clone proportion
-    
+
     for var in comvars:
         cn=''
         for cnv in comcnvs[comvars[var][0]]:
             if int(comvars[var][1])>=cnv.start and int(comvars[var][1])<=cnv.end:
                 cn=cnv.content
                 break
-        comvars[var][5]=cn  #copy number 
-        
+        comvars[var][5]=cn  #copy number
+
     with open(args.directory +'/'+ args.prefix + args.name + '.vcf','w+') as file:
         file.write('##fileformat=VCFv4.2'+'\n')
         file.write('##fileDate='+str(datetime.datetime.today().strftime('%Y%m%d'))+'\n')

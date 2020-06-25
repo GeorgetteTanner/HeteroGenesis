@@ -136,10 +136,10 @@ def main():
         parameters['dbsnpsnvproportion']=0
     else:
         if "dbsnpsnvproportion" not in parameters:
-            parameters['dbsnpsnvproportion']=0.9
+            parameters['dbsnpsnvproportion']=0.99
             info('No proportion given for germline SNVs taken from dbSNP, using '+str(parameters['dbsnpsnvproportion'])+'.')
         if "dbsnpindelproportion" not in parameters:
-            parameters['dbsnpindelproportion']=0.5
+            parameters['dbsnpindelproportion']=0.97
             info('No proportion given for germline InDels taken from dbSNP, using '+str(parameters['dbsnpindelproportion'])+'.')
     if "wgdprob" not in parameters:
         parameters['wgdprob']=0

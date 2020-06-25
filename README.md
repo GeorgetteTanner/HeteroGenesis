@@ -121,8 +121,8 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |indsomatic|Rate of somatic indels per base.|0.000002|
 |cnvrepsomatic|Number of somatic replication CNVs.|250|
 |cnvdelsomatic|Number of somatic deletion CNVs.|250|
-|dbsnpsnvproportion|Proportion of germline SNVs taken from dbSNP. The default value is taken from an estimate of the proportion of SNVs found in dbSNP for coding regions, to make the genomes suitable for use with whole-exome *in silico* sequencing. The user may wish to adjust this if they intend to use the genomes for other purposes. |0.9|
-|dbsnpindelproportion|Proportion of germline InDels taken from dbSNP. Default value taken from estimates for coding regions, as above. |0.5|
+|dbsnpsnvproportion|Proportion of germline SNVs taken from dbSNP. |0.99|
+|dbsnpindelproportion|Proportion of germline InDels taken from dbSNP. |0.97|
 |chromosomes|List of chromosomes to include in the model. Alternatively, "all" can be given, in which case chromosomes 1-22 will be used. This only works for genomes for which chromosomes are labelled 'chr1','chr2'... (Also note that X and Y are not included with "all")|”all”|
 |givengermlinesnvs, givengermlineindels, givengermlinecnvs, givensomaticsnvs, givensomaticindels, givensomaticcnvs|Used to provide lists of variants for when the user wishes to sample from given variants instead of randomly generating them. See 'examplegivenXXX.txt' files for formatting. Only variants that fit into the genome (eg. not in deleted regions etc. will be used). Note: when a CNV is sampled from a given list, the distinction between replication and deletion CNVs (eg. cnvrepsomatic vs cnvdelsomatic) is ignored and the copy number is instead just taken from the given list. |''|
 |givengermlinesnvsproportion, givengermlineindelsproportion, givengermlinecnvsproportion, givensomaticsnvsproportion, givensomaticindelsproportion, givensomaticcnvsproportion|The proportion of variants taken from given lists. For germline SNVs/InDels the proportion of randomly generated variants is 1-(dbsnpsnvproportion + givengermlinesnvsproportion).|0.0|
