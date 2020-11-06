@@ -124,7 +124,7 @@ A JSON file containing run parameters and locations of other inputs. Any paramet
 |dbsnpsnvproportion|Proportion of germline SNVs taken from dbSNP. |0.99|
 |dbsnpindelproportion|Proportion of germline InDels taken from dbSNP. |0.97|
 |chromosomes|List of chromosomes to include in the model. Alternatively, "all" can be given, in which case chromosomes 1-22 will be used. This only works for genomes for which chromosomes are labelled 'chr1','chr2'... (Also note that X and Y are not included with "all")|”all”|
-|givengermlinesnvs, givengermlineindels, givengermlinecnvs, givensomaticsnvs, givensomaticindels, givensomaticcnvs|Used to provide lists of variants for when the user wishes to sample from given variants instead of randomly generating them. See 'examplegivenXXX.txt' files for formatting. Only variants that fit into the genome (eg. not in deleted regions etc. will be used). Note: when a CNV is sampled from a given list, the distinction between replication and deletion CNVs (eg. cnvrepsomatic vs cnvdelsomatic) is ignored and the copy number is instead just taken from the given list. |''|
+|givengermlinesnvs, givengermlineindels, givengermlinecnvs, givensomaticsnvs, givensomaticindels, givensomaticcnvs|Used to provide lists of variants for when the user wishes to sample from given variants instead of randomly generating them. See 'examplegivenXXX.txt' files for formatting. Only variants that fit into the genome (eg. not in deleted regions etc. will be used). Note: when a CNV is sampled from a given list, the distinction between replication and deletion CNVs (eg. cnvrepsomatic vs cnvdelsomatic) is ignored and the copy number is instead just taken from the given list. A copy number of 2 on chr1A indicates a 1 copy gain, whereas a copy number of 0 on chr1A indicates a 1 copy deletion. |''|
 |givengermlinesnvsproportion, givengermlineindelsproportion, givengermlinecnvsproportion, givensomaticsnvsproportion, givensomaticindelsproportion, givensomaticcnvsproportion|The proportion of variants taken from given lists. For germline SNVs/InDels the proportion of randomly generated variants is 1-(dbsnpsnvproportion + givengermlinesnvsproportion).|0.0|
 
 CNV lengths and copy numbers, and indel lengths are taken from lognormal distributions, that are defined by the mean and variance of the underlying normal distribution. Values from these distributions are then scaled up by a multiplication factor for cnv lengths. Indel length distributions are the same for germline and somatic.
@@ -223,103 +223,19 @@ heterogenesis_vargen -j ../HeteroGenesis/example.json
 #Run heterogenesis_varincorp on each clone and germline: ~5min
 for clone in clone1 clone2 germline ; do heterogenesis_varincorp -j ../HeteroGenesis/example.json -c ${clone} ; done
 
+#You may then want to merge the outputted fasta files from individual chromosomes within a clone.
+
 #Run freqcalc to create bulk sample variant profiles: 
 freqcalc -c ../HeteroGenesis/example_clones.txt -d . -p test1 -n sample1
 
 ```
 
-If you want to carry out _in silico_ whole-exome sequencing of the created tumour, this can be achieved with the following:
+If you want to carry out _in silico_ whole exome or targetted sequencing of the created tumour, this can be achieved with w-Wessim (See https://github.com/GeorgetteTanner/w-Wessim for further details.) Alternatively, many other programs exist for whole genome sequencing.
 
-(See https://github.com/GeorgetteTanner/w-Wessim for further details.)
+Once reads have been simulated, the following can be used to create bulk samples:
 
-This example demonstrates how to use w-Wessim for _in silico_ whole-exome sequencing with a "real reads" probe sequences set. This method creates the most realistic sequencing dataset, but is a very time and memory consuming process and not feasible without access to a high performance computing system. Therefore the option of using a subsampled probe set (with 1/1000th of the probes) is available if the user wishes to run the programs on a standard computer for testing. The resulting sequencing data set from this will look very patchy and is not intended for any use. Instructions for both options are included below.
-
-Alternatively, the probe sequences from an exon capture kit can be used. This is much quicker and less memory intensive but results in a less realistic distribution of reads. Instructions for this can be found at https://github.com/GeorgetteTanner/w-Wessim.
-
-
-
-```bash
-#Download programs - (you may get a few warnings during pblat installation that can be ignored):
-cd ..
-git clone https://github.com/GeorgetteTanner/w-Wessim.git
-git clone https://github.com/icebert/pblat.git
-cd pblat
-make
-cd ..
-#(need to find the correct binary file for your operating system:)
-wget http://hgdownload.soe.ucsc.edu/admin/exe/macOSX.x86_64/faToTwoBit
-chmod a+x ./fatotwobit
-
-#EITHER:
-
-#1. Download full set of probe sequences and convert from fastq to fasta:
-cd w-Wessim
-wget ftp://ftp.sra.ebi.ac.uk/vol1/ERA157/ERA1574375/fastq/real_wes_reads_probes.fastq.gz
-gunzip real_wes_reads_probes.fastq.gz
-paste - - - - < real_wes_reads_probes.fastq | cut -f 1,2 | sed 's/^@/>/' | tr "\t" "\n" > real_wes_reads_probes.fa
-
-#OR
-
-#2.Download subsampled probe sequences:
-cd w-Wessim 
-wget https://github.com/GeorgetteTanner/data/raw/master/real_wes_reads_probes_subsampled.fa.gz
-gunzip real_wes_reads_probes_subsampled.fa.gz
-mv real_wes_reads_probes_subsampled.fa real_wes_reads_probes.fa
-
-#Combine fasta files. If using a whole genome run, these need to be
-#grouped into files of no more than around 2GB to avoid errors with 
-#pblat - we recommend grouping into 4. When using only a couple of 
-#chromosomes, all copies can be grouped together but for 
-#demostration purposes we group into 2 files here. Alternatively, 
-#code for grouping files into 4 is given below. (More than 4 files 
-#will probably be needed on whole genome runs with whole-genome 
-#duplication events.) Each run of pblat takes a similar length of 
-#time regardless of genome length so its best to group into as few 
-#files as possible.: ~2sec
-
-#EITHER:
-
-#1.
-cd ../test1
-for clo in clone1 clone2 germline ; do cat test1${clo}chr*A*fasta > test1${clo}_1.fasta ; done
-for clo in clone1 clone2 germline ; do cat test1${clo}chr*B*fasta > test1${clo}_2.fasta ; done
-
-#OR:
-
-#2.
-cd ../test1
-for clo in clone1 clone2 germline ; do cat test1${clo}chr1*A*fasta > test1${clo}_1.fasta ; done
-for clo in clone1 clone2 germline ; do cat test1${clo}chr1*B*fasta > test1${clo}_2.fasta ; done
-for clo in clone1 clone2 germline ; do cat test1${clo}chr[^1]*A*fasta > test1${clo}_3.fasta ; done
-for clo in clone1 clone2 germline ; do cat test1${clo}chr[^1]*B*fasta > test1${clo}_4.fasta ; done
-
-#Convert each chromosome fasta to 2bit: 
-for f in test1*_*.fasta ; do faToTwoBit $f ${f}.2bit ; done
-
-#pblat: ~1h for subsampled probes
-for f in test1*.fasta.2bit ; do ../pblat/pblat $f ../w-Wessim/real_wes_reads_probes.fa $(basename $f .fasta.2bit).psl -minScore=95 -minIdentity=95 -threads=8; done
-
-#Combine .psl files:
-#Save the header:
-head -n 5 $(ls *.psl | head -1 ) > pslheader.txt
-#Remove the headers:
-for f in *.psl ; do tail -n+6 $f > noheader_$f ; done 
-#Combine noheader*.psl files and sort combined file on column 10: 
-for clone in clone1 clone2 germline ; do cat noheader_test1${clone}*.psl | sort -k 10 -n > sorted_combined_noheader_test1${clone}.psl ; done
-#Add the header:
-for clone in clone1 clone2 germline ; do cat pslheader.txt sorted_combined_noheader_test1${clone}.psl > ${clone}.psl ; done
-
-#Combine fasta files into full genomes
-for clone in clone1 clone2 germline ; do cat test1${clone}*.fasta > test1${clone}.fasta ; done
-
-#w-Wessim:
-cd ../w-Wessim
-for clo in clone1 clone2 germline ; do python2 w-wessim.py -R ../test1/test1${clo}.fasta -P real_wes_reads_probes.fa -B ${clo}.psl -n 100000 -l d -M lib/hs2000p.gzip -pz -o ../test1/w-wessimoutput_{clo} -t 1 -v -m 20 -f 170 -d 35 ; done
-
-#Align reads using own pipelines. (Cleaning reads is not recomended 
-#if using the error model provided with w-Wessim as that was 
-#trained on a pre-cleaned dataset to improve alignment accuracy of 
-#the training set.)
+```
+#Align reads using own pipelines. 
 
 #Subsample BAM files in proportions listed in the clones file:
 samtools view -b -h -s 0.15 -o germline_0.20.bam germline.bam 
