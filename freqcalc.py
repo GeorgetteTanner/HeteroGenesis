@@ -124,7 +124,7 @@ def main():
     for clo in clones:
         with open(args.directory +'/'+ args.prefix + clo + 'cnv.txt','r') as file:
             for line in file:
-                if not line.starswith('Chromosome'):
+                if not line.startswith('Chromosome'):
                     cnv=line.strip().split('\t')
                     if cnv[0] not in allcnvs:
                         allcnvs[cnv[0]]=[]
@@ -155,15 +155,13 @@ def main():
                 var=line.split('\t')
                 allvars.append([var[0],str(var[1]),var[3],var[4],int(var[9].split(':')[1]),int(var[9].split(':')[4]),float(clones[clo]),str(var[9].split(':')[2])])
 
-
     #combine all vars
     comvars={}
     for var in allvars:
-        if var[0]+var[1] in comvars:
-            comvars[var[0]+var[1]][4]=comvars[var[0]+var[1]][4]+(float(var[4])*float(var[6]))   #add to current value
+        if var[0]+':'+var[1] in comvars:
+            comvars[var[0]+':'+var[1]][4]=comvars[var[0]+':'+var[1]][4]+(float(var[4])*float(var[6]))   #add to current value
         else:
-            comvars[var[0]+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),'',var[7][0]]  #multiply number of copies by clone proportion
-
+            comvars[var[0]+':'+var[1]]=[var[0],var[1],var[2],var[3],(float(var[4])*float(var[6])),'',var[7][0]]  #multiply number of copies by clone proportion
     for var in comvars:
         cn=''
         for cnv in comcnvs[comvars[var][0]]:
