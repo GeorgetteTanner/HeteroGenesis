@@ -33,7 +33,8 @@ git clone https://github.com/GeorgetteTanner/HeteroGenesis.git
 cd HeteroGenesis/
 python setup.py install
 ```
- 
+Instalation should complete in a few seconds.
+
 ## Overview
 
 HeteroGenesis is implemented in three parts: 
