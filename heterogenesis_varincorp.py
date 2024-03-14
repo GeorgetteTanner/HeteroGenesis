@@ -146,7 +146,7 @@ def main():
             file.write('##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">\n')
             file.write('##FORMAT=<ID=AF,Number=A,Type=Float,Description="Alt allele frequency">\n')
             file.write('##FORMAT=<ID=TC,Number=1,Type=Integer,Description="Total copies of alt allele">\n')
-            file.write('##FORMAT=<ID=HS,Number=1,Type=Integer,Description="Haplotypes">\n')
+            file.write('##FORMAT=<ID=HS,Number=1,Type=Character,Description="Haplotypes">\n')
             file.write('##FORMAT=<ID=HC,Number=.,Type=Integer,Description="Total copies of alt allele per haplotype">\n')
             file.write('##FORMAT=<ID=CN,Number=2,Type=Integer,Description="Copy number at position">\n')
             file.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'+clo+'\n')
